@@ -10,7 +10,7 @@ import UnmatchedPlayers from '@/components/idp-checker/UnmatchedPlayers';
 import ErrorBanner from '@/components/idp-checker/ErrorBanner';
 import { ParsedPlayer, CheckAvailabilityResponse } from '@/lib/idp-checker/types';
 
-const DEFAULT_LEAGUE_ID = '1330380224705077248';
+const DEFAULT_LEAGUE_ID = '';
 
 export default function IdpCheckerPage() {
   const [leagueId, setLeagueId] = useState(DEFAULT_LEAGUE_ID);
