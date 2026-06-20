@@ -6,7 +6,7 @@ const tools = [
     icon: "🏆",
     title: "League Standings",
     description:
-      "Live standings for the IDP Dynasty league, pulled straight from Sleeper — wins, losses, and ties for every team.",
+      "Enter any Sleeper league ID to see its standings — wins, losses, and ties for every roster, pulled straight from Sleeper.",
     cta: "View standings",
   },
   {

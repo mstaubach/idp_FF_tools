@@ -1,10 +1,10 @@
 const LEAGUE_ID = "1048426134855081984";
 
-export default async function StandingsTable() {
+export default async function StandingsTable({ leagueId = LEAGUE_ID }) {
   let teams = [];
   try {
     const response = await fetch(
-      `https://api.sleeper.app/v1/league/${LEAGUE_ID}/rosters`,
+      `https://api.sleeper.app/v1/league/${leagueId}/rosters`,
       { cache: "no-store" }
     );
     if (response.ok) {

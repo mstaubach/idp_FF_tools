@@ -1,26 +1,72 @@
-import StandingsTable from "../(components)/StandingsTable";
-import FirstPlaceFinish from "../(components)/FirstPlaceFinish";
+import { redirect } from "next/navigation";
 
-// Standings are fetched live from the Sleeper API per request so the build
-// never depends on outbound network access.
-export const dynamic = "force-dynamic";
+async function goToLeague(formData: FormData) {
+  "use server";
+  const raw = String(formData.get("leagueId") ?? "").trim();
+  // Accept either a bare league ID or a pasted Sleeper URL containing one.
+  const match = raw.match(/(\d{6,})/);
+  if (match) redirect(`/standings/${match[1]}`);
+  redirect("/standings?error=1");
+}
 
-export default async function StandingsPage() {
+export default function StandingsHome({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
   return (
-    <main className="flex flex-col gap-8 md:flex-row md:justify-between">
-      <div className="max-w-xl">
-        <h1 className="mb-4 text-2xl font-bold">IDP Dynasty League</h1>
-        <p className="text-slate-300">
-          The IDP Dynasty league originally began as a keeper league that
-          eventually transformed into a dynasty league. The individual defensive
-          format has the teams start 19 total players — offense and defense
-          combined.
+    <main className="space-y-8">
+      <section className="space-y-3">
+        <h1 className="text-3xl font-bold">League Standings</h1>
+        <p className="max-w-2xl text-slate-300">
+          Enter any Sleeper league ID to see its current standings — wins,
+          losses, and ties for every roster, pulled live from the Sleeper API.
         </p>
-      </div>
-      <div className="space-y-4">
-        <FirstPlaceFinish />
-        <StandingsTable />
-      </div>
+      </section>
+
+      <form action={goToLeague} className="max-w-xl space-y-3">
+        <label
+          htmlFor="leagueId"
+          className="block text-sm font-medium text-slate-300"
+        >
+          Sleeper League ID
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="leagueId"
+            name="leagueId"
+            type="text"
+            inputMode="numeric"
+            placeholder="e.g. 1048426134855081984"
+            required
+            className="flex-1 rounded-lg border border-pitch-700 bg-pitch-800 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-emerald-600 px-5 py-2.5 font-semibold text-white transition hover:bg-emerald-500"
+          >
+            View standings
+          </button>
+        </div>
+        {searchParams.error && (
+          <p className="text-sm text-red-400">
+            Please enter a valid Sleeper league ID.
+          </p>
+        )}
+      </form>
+
+      <section className="max-w-2xl rounded-xl border border-pitch-700 bg-pitch-800/50 p-5 text-sm text-slate-300">
+        <h2 className="mb-2 font-semibold text-slate-100">
+          Where do I find my league ID?
+        </h2>
+        <p>
+          Open your league in the Sleeper web app. The long number in the URL
+          (<code className="text-emerald-400">
+            sleeper.com/leagues/&lt;LEAGUE_ID&gt;
+          </code>
+          ) is your league ID. You can paste the whole URL above too.
+        </p>
+      </section>
     </main>
   );
 }
