@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# IDP Dynasty HQ
+
+A unified suite of fantasy football tools for Sleeper IDP dynasty leagues. This
+app merges what used to be four separate projects into a single Next.js app with
+a shared navigation bar and a landing page that introduces each tool.
+
+## Tools
+
+| Route | Tool | What it does |
+| --- | --- | --- |
+| `/` | **Home** | Landing page describing the suite and linking to every tool. |
+| `/standings` | **League Standings** | Live IDP Dynasty league standings from the Sleeper API. |
+| `/trade-tracker` | **Trade Tracker** | Follows traded draft picks into the draft and shows which player was selected with each one, so you can see what a trade actually became. |
+| `/idp-checker` | **IDP Availability Checker** | Paste rankings or upload a CSV and check which IDP players are still available in your Sleeper league. Fuzzy name matching, position filters, and waiver info. |
+| `/injury-tracker` | **Injury Tracker** | Placeholder — coming soon. |
+
+All tools read from the public, read-only [Sleeper API](https://docs.sleeper.com/).
+No login, API keys, or database — just a league ID.
+
+## Project layout
+
+```
+src/
+  app/
+    page.tsx                       landing page
+    layout.tsx                     shared shell (NavBar + Footer)
+    (components)/                  NavBar, Footer, StandingsTable, FirstPlaceFinish
+    standings/page.tsx             league standings
+    trade-tracker/                 trade tracker home + league/[leagueId]
+    idp-checker/page.tsx           IDP availability checker
+    injury-tracker/page.tsx        coming-soon placeholder
+    api/                           check-availability + players routes (IDP checker)
+  components/
+    idp-checker/                   IDP checker UI components
+    trade-tracker/                 trade tracker UI components
+  lib/
+    idp-checker/                   parsing, matching, availability, Sleeper client
+    trade-tracker/                 trade/pick resolution, Sankey, Sleeper client
+```
+
+Each tool's library and component code is namespaced (`idp-checker/`,
+`trade-tracker/`) so the two Sleeper API clients and type modules don't collide.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Other scripts:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build    # production build
+npm run start    # serve the production build
+npm run lint     # next lint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+> Note: the standings, trade tracker, and IDP checker call `api.sleeper.app` at
+> request time, so the running environment needs outbound network access to that
+> host.
 
-## Learn More
+## Deploying to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+Standard Next.js app — import the repository in Vercel and ship with zero config.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Not affiliated with Sleeper. Uses the public, read-only Sleeper API.

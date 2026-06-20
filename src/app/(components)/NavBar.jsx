@@ -1,39 +1,45 @@
+"use client";
+
 import Link from "next/link";
-import Image from "next/image";
+import { usePathname } from "next/navigation";
+
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/standings", label: "Standings" },
+  { href: "/trade-tracker", label: "Trade Tracker" },
+  { href: "/idp-checker", label: "IDP Checker" },
+  { href: "/injury-tracker", label: "Injury Tracker" },
+];
 
 const NavBar = () => {
-  let height = 25;
-  let width = 25;
+  const pathname = usePathname();
+
+  const isActive = (href) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
   return (
-    <nav className="border-b-4 border-white p-2.5">
-      <div className="flex justify-center p-5">
-        <h1 className="font-extrabold text-3xl">IDP Dynasty</h1>
-      </div>
-      <div className="flex justify-center px-5">
-        <div className="px-10 flex justify-center">
-          <Image sr="" height={height} width={width} alt="Home Button." />
-          <Link href="/">Home</Link>
-        </div>
-        <div className="px-10 flex justify-center">
-          <Image sr="" height={height} width={width} alt="Matchups Section." />
-          <Link href="/">Matchups</Link>
-        </div>
-        <div className="px-10 flex justify-center">
-          <Image
-            sr=""
-            height={height}
-            width={width}
-            alt="Transactions Section."
-          />
-          <Link href="/">Transactions</Link>
-        </div>
-        <div className="px-10 flex justify-center">
-          <Image sr="" height={height} width={width} alt="Rosters Section." />
-          <Link href="/">Rosters</Link>
-        </div>
-        <div className="px-10 flex justify-center">
-          <Image sr="" height={height} width={width} alt="Standings Section." />
-          <Link href="/">Standings</Link>
+    <nav className="border-b border-pitch-700 bg-pitch-900/80 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-2xl">🏈</span>
+          <span className="text-lg font-extrabold tracking-tight">
+            IDP Dynasty HQ
+          </span>
+        </Link>
+        <div className="flex flex-wrap gap-1">
+          {links.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                isActive(href)
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-300 hover:bg-pitch-800 hover:text-white"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
         </div>
       </div>
     </nav>
