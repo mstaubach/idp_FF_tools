@@ -2,6 +2,10 @@
   "name": "idp_dynasty",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.9.7",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,7 +15,8 @@
   "dependencies": {
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.7"
+    "next": "14.2.7",
+    "fuse.js": "^7.1.0"
   },
   "devDependencies": {
     "typescript": "^5",
