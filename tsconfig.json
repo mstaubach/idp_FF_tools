@@ -29,5 +29,5 @@
     ".next/types/**/*.ts",
     "src/app/(components)/StandingsTable.jsx"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "vitest.config.ts"]
 }

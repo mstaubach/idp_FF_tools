@@ -51,9 +51,12 @@ npm run dev      # http://localhost:3000
 Other scripts:
 
 ```bash
-npm run build    # production build
-npm run start    # serve the production build
-npm run lint     # next lint
+npm run build      # production build
+npm run start      # serve the production build
+npm run lint       # next lint
+npm run typecheck  # tsc --noEmit
+npm test           # run the vitest suite (IDP checker logic)
+npm run test:watch # vitest in watch mode
 ```
 
 > Note: the standings, trade tracker, and IDP checker call `api.sleeper.app` at
