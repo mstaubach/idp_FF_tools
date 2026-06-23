@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { TeamView } from "@/lib/trade-tracker/team-view";
 import TeamTradeCard from "./TeamTradeCard";
 import { computeArrowPath } from "./arrowPath";
+import { layoutTrades } from "./tradeLayout";
 
 export default function TeamTradeCanvas({ view }: { view: TeamView }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -21,6 +22,15 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     }
     return { sourceKeysByTrade: source, targetKeysByTrade: target };
   }, [view.chainLinks]);
+
+  const { positions, columnCount } = useMemo(() => {
+    const positions = layoutTrades(view.trades, view.chainLinks);
+    let columnCount = 1;
+    for (const { column } of positions.values()) {
+      columnCount = Math.max(columnCount, column + 1);
+    }
+    return { positions, columnCount };
+  }, [view.trades, view.chainLinks]);
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -94,15 +104,31 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
         ))}
       </svg>
 
-      <div className="flex w-max items-start gap-16">
-        {view.trades.map((trade) => (
-          <TeamTradeCard
-            key={trade.tradeId}
-            trade={trade}
-            sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
-            targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
-          />
-        ))}
+      <div
+        className="grid w-max items-start gap-x-16 gap-y-8"
+        style={{
+          gridTemplateColumns: `repeat(${columnCount}, 20rem)`,
+          gridAutoRows: "min-content",
+        }}
+      >
+        {view.trades.map((trade) => {
+          const cell = positions.get(trade.tradeId);
+          return (
+            <div
+              key={trade.tradeId}
+              style={{
+                gridColumn: (cell?.column ?? 0) + 1,
+                gridRow: (cell?.row ?? 0) + 1,
+              }}
+            >
+              <TeamTradeCard
+                trade={trade}
+                sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
+                targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
