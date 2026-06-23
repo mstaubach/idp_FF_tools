@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { TeamView } from "@/lib/trade-tracker/team-view";
 import TeamTradeCard from "./TeamTradeCard";
-import { computeArrowPath } from "./arrowPath";
+import { computeArrowPath, type GutterRoute } from "./arrowPath";
 import { layoutTrades } from "./tradeLayout";
 
 export default function TeamTradeCanvas({ view }: { view: TeamView }) {
@@ -38,6 +38,8 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
 
     const recompute = () => {
       const origin = track.getBoundingClientRect();
+      const toContentX = (x: number) => x - origin.left + track.scrollLeft;
+      const toContentY = (y: number) => y - origin.top + track.scrollTop;
       const next: string[] = [];
       for (const link of view.chainLinks) {
         const src = track.querySelector(`[data-anchor="src:${link.fromTradeId}:${link.assetKey}"]`);
@@ -45,18 +47,39 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
         if (!src || !dst) continue;
         const s = src.getBoundingClientRect();
         const d = dst.getBoundingClientRect();
-        next.push(
-          computeArrowPath(
-            {
-              x: s.right - origin.left + track.scrollLeft,
-              y: s.top + s.height / 2 - origin.top + track.scrollTop,
-            },
-            {
-              x: d.left - origin.left + track.scrollLeft,
-              y: d.top + d.height / 2 - origin.top + track.scrollTop,
-            },
-          ),
-        );
+        const from = {
+          x: toContentX(s.right),
+          y: toContentY(s.top + s.height / 2),
+        };
+        const to = {
+          x: toContentX(d.left),
+          y: toContentY(d.top + d.height / 2),
+        };
+
+        // Adjacent same-row hops get the clean curve. Anything that spans rows
+        // or skips a column routes through the empty gutters so it can't cross
+        // a card on the way.
+        const fp = positions.get(link.fromTradeId);
+        const tp = positions.get(link.toTradeId);
+        const straight =
+          fp && tp && fp.row === tp.row && tp.column === fp.column + 1;
+
+        let route: GutterRoute | undefined;
+        if (!straight) {
+          const srcCard = track.querySelector(`[data-trade="${link.fromTradeId}"]`);
+          const tgtCard = track.querySelector(`[data-trade="${link.toTradeId}"]`);
+          if (srcCard && tgtCard) {
+            const sc = srcCard.getBoundingClientRect();
+            const tc = tgtCard.getBoundingClientRect();
+            route = {
+              exitX: toContentX(sc.right) + 24,
+              enterX: toContentX(tc.left) - 24,
+              gutterY: toContentY(tc.top) - 16,
+            };
+          }
+        }
+
+        next.push(computeArrowPath(from, to, route));
       }
       setPaths(next);
       setSize({ w: track.scrollWidth, h: track.scrollHeight });
@@ -70,7 +93,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
       ro.disconnect();
       window.removeEventListener("resize", recompute);
     };
-  }, [view]);
+  }, [view, positions]);
 
   return (
     <div ref={trackRef} className="relative overflow-x-auto pb-4">
@@ -116,6 +139,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
           return (
             <div
               key={trade.tradeId}
+              data-trade={trade.tradeId}
               style={{
                 gridColumn: (cell?.column ?? 0) + 1,
                 gridRow: (cell?.row ?? 0) + 1,

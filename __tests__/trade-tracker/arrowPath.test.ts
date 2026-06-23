@@ -18,3 +18,25 @@ describe('computeArrowPath', () => {
     expect(match![2]).toBe('50');
   });
 });
+
+describe('computeArrowPath with a gutter route', () => {
+  const from = { x: 100, y: 50 };
+  const to = { x: 700, y: 250 };
+  const route = { exitX: 130, enterX: 670, gutterY: 200 };
+
+  it('starts at `from` and ends at `to`', () => {
+    const d = computeArrowPath(from, to, route);
+    expect(d.startsWith('M 100 50')).toBe(true);
+    expect(d.trim().endsWith('700 250')).toBe(true);
+  });
+
+  it('routes through the gutter lanes instead of straight across', () => {
+    const d = computeArrowPath(from, to, route);
+    // bends at the source gutter (exitX), the row-gap lane (gutterY), and the
+    // target gutter (enterX) — through clear lanes, not a diagonal cubic bezier.
+    expect(d).toContain('130'); // exitX
+    expect(d).toContain('670'); // enterX
+    expect(d).toContain('200'); // gutterY
+    expect(d).not.toContain('C');
+  });
+});
