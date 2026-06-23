@@ -12,11 +12,13 @@ function AssetRow({
   side,
   sourceKeys,
   targetKeys,
+  tradeId,
 }: {
   asset: ReceivedAsset;
   side: "receives" | "tradedAway";
   sourceKeys: Set<string>;
   targetKeys: Set<string>;
+  tradeId: string;
 }) {
   if (asset.kind === "player") {
     return (
@@ -34,7 +36,7 @@ function AssetRow({
   const key = keyOf(asset);
   const isSource = side === "receives" && sourceKeys.has(key);
   const isTarget = side === "tradedAway" && targetKeys.has(key);
-  const anchor = isSource ? `src:${key}` : isTarget ? `dst:${key}` : undefined;
+  const anchor = isSource ? `src:${tradeId}:${key}` : isTarget ? `dst:${tradeId}:${key}` : undefined;
 
   return (
     <li
@@ -57,12 +59,14 @@ function Column({
   side,
   sourceKeys,
   targetKeys,
+  tradeId,
 }: {
   title: string;
   assets: ReceivedAsset[];
   side: "receives" | "tradedAway";
   sourceKeys: Set<string>;
   targetKeys: Set<string>;
+  tradeId: string;
 }) {
   return (
     <div className="rounded-lg border border-pitch-700 bg-pitch-900/60 p-4">
@@ -78,6 +82,7 @@ function Column({
               side={side}
               sourceKeys={sourceKeys}
               targetKeys={targetKeys}
+              tradeId={tradeId}
             />
           ))}
         </ul>
@@ -121,6 +126,7 @@ export default function TeamTradeCard({
           side="tradedAway"
           sourceKeys={sourceKeys}
           targetKeys={targetKeys}
+          tradeId={trade.tradeId}
         />
         <Column
           title="Receives"
@@ -128,6 +134,7 @@ export default function TeamTradeCard({
           side="receives"
           sourceKeys={sourceKeys}
           targetKeys={targetKeys}
+          tradeId={trade.tradeId}
         />
       </div>
     </article>

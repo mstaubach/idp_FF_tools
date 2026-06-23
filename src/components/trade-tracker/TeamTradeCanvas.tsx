@@ -30,8 +30,8 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
       const origin = track.getBoundingClientRect();
       const next: string[] = [];
       for (const link of view.chainLinks) {
-        const src = track.querySelector(`[data-anchor="src:${link.assetKey}"]`);
-        const dst = track.querySelector(`[data-anchor="dst:${link.assetKey}"]`);
+        const src = track.querySelector(`[data-anchor="src:${link.fromTradeId}:${link.assetKey}"]`);
+        const dst = track.querySelector(`[data-anchor="dst:${link.toTradeId}:${link.assetKey}"]`);
         if (!src || !dst) continue;
         const s = src.getBoundingClientRect();
         const d = dst.getBoundingClientRect();

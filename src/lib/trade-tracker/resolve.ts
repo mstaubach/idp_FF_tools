@@ -112,7 +112,7 @@ function playerName(p: SleeperPlayer | undefined, fallbackId: string): string {
   return name || fallbackId;
 }
 
-// Index every completed draft selection by `${season}:${round}:${originalRoster}`.
+// Index every completed draft selection by pickKey(season, round, originalRoster).
 // The original roster is derived from the draft slot, so a pick that changed
 // hands still maps back to the franchise whose slot it was.
 function indexDraftPicks(
