@@ -77,6 +77,13 @@ export async function getDrafts(leagueId: string): Promise<Draft[]> {
   return (await getJson<Draft[]>(`/league/${leagueId}/drafts`, 60 * 60)) ?? [];
 }
 
+// The /league/{id}/drafts list endpoint omits slot_to_roster_id; only the
+// single-draft endpoint includes it. We need it to map draft slots back to the
+// franchise that originally owned each pick.
+export async function getDraft(draftId: string): Promise<Draft | null> {
+  return getJson<Draft>(`/draft/${draftId}`, 60 * 60);
+}
+
 export async function getDraftPicks(
   draftId: string,
 ): Promise<DraftPickResult[]> {
