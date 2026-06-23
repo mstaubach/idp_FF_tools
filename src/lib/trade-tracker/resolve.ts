@@ -1,4 +1,5 @@
 import {
+  getDraft,
   getDraftPicks,
   getDrafts,
   getLeagueChain,
@@ -48,6 +49,7 @@ export type ReceivedAsset =
       kind: "pick";
       season: string;
       round: number;
+      originalRoster: number;
       label: string;
       outcome: PickOutcome;
     };
@@ -77,10 +79,25 @@ export interface TradeView {
   flows: TradeFlow[];
 }
 
+export interface TeamMeta {
+  rosterId: number;
+  teamName: string;
+  ownerName: string;
+}
+
 export interface LeagueTrades {
   leagueName: string;
   seasons: string[];
+  teams: TeamMeta[];
   trades: TradeView[];
+}
+
+export function pickKey(
+  season: string,
+  round: number,
+  originalRoster: number,
+): string {
+  return `${season}:${round}:${originalRoster}`;
 }
 
 const ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
@@ -106,7 +123,7 @@ function indexDraftPicks(
   for (const pick of picks) {
     const originalRoster = draft.slot_to_roster_id?.[String(pick.draft_slot)];
     if (originalRoster == null) continue;
-    into.set(`${draft.season}:${pick.round}:${originalRoster}`, pick);
+    into.set(pickKey(draft.season, pick.round, originalRoster), pick);
   }
 }
 
@@ -118,7 +135,7 @@ function resolvePick(
   seasonsWithDraft: Set<string>,
   players: Record<string, SleeperPlayer>,
 ): PickOutcome {
-  const match = draftIndex.get(`${season}:${round}:${originalRoster}`);
+  const match = draftIndex.get(pickKey(season, round, originalRoster));
   if (match) {
     const metaName = [match.metadata?.first_name, match.metadata?.last_name]
       .filter(Boolean)
@@ -226,6 +243,7 @@ function buildPickAsset(
     kind: "pick",
     season: pick.season,
     round: pick.round,
+    originalRoster: pick.roster_id,
     label,
     outcome: resolvePick(
       pick.season,
@@ -262,7 +280,16 @@ export async function buildLeagueTrades(
         getDrafts(league.league_id),
       ]);
       const draftPicks = await Promise.all(
-        drafts.map(async (d) => ({ draft: d, picks: await getDraftPicks(d.draft_id) })),
+        // The drafts list omits slot_to_roster_id, so fetch each full draft to
+        // get the slot->roster mapping picks are indexed by. Fall back to the
+        // list entry if the detail fetch fails so season info isn't lost.
+        drafts.map(async (d) => {
+          const [full, picks] = await Promise.all([
+            getDraft(d.draft_id),
+            getDraftPicks(d.draft_id),
+          ]);
+          return { draft: full ?? d, picks };
+        }),
       );
       return { league, users, rosters, transactions, draftPicks };
     }),
@@ -305,5 +332,17 @@ export async function buildLeagueTrades(
     (a, b) => Number(b) - Number(a),
   );
 
-  return { leagueName: chain[0].name, seasons, trades };
+  const newest = perLeague[0];
+  const newestUserById = new Map(newest.users.map((u) => [u.user_id, u]));
+  const teams: TeamMeta[] = newest.rosters.map((roster) => {
+    const user = roster.owner_id ? newestUserById.get(roster.owner_id) : undefined;
+    return {
+      rosterId: roster.roster_id,
+      teamName:
+        user?.metadata?.team_name || user?.display_name || `Roster ${roster.roster_id}`,
+      ownerName: user?.display_name || "Unknown",
+    };
+  });
+
+  return { leagueName: chain[0].name, seasons, teams, trades };
 }
