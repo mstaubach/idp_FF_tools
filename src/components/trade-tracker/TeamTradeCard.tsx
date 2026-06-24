@@ -56,7 +56,7 @@ function AssetRow({
       )}
       <div className="mt-0.5">
         {isSource ? (
-          <span className="text-sm text-sky-400/80">→ traded on</span>
+          <span className="text-sm text-sky-400/80">→ traded pick</span>
         ) : (
           <PickOutcomeBadge asset={asset} />
         )}
