@@ -5,7 +5,7 @@ import { toBlob } from "html-to-image";
 import type { TeamView } from "@/lib/trade-tracker/team-view";
 import TeamTradeCard from "./TeamTradeCard";
 import { computeArrowPath, type GutterRoute } from "./arrowPath";
-import { layoutTrades } from "./tradeLayout";
+import { layoutChainComponents, type CellPosition } from "./tradeLayout";
 
 // Matches the app's body background (bg-pitch-900) so the screenshot isn't
 // transparent where it shows between cards.
@@ -102,16 +102,18 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     };
   }, [view.trades, view.chainLinks]);
 
-  const { positions, columnCount } = useMemo(() => {
-    const positions = layoutTrades(chainTrades, view.chainLinks);
-    let columnCount = 1;
-    for (const { column } of positions.values()) {
-      columnCount = Math.max(columnCount, column + 1);
+  // Each connected chain is laid out as its own compact strip; merge their
+  // positions into one lookup for the arrow-routing logic below.
+  const { components, positionByTrade } = useMemo(() => {
+    const components = layoutChainComponents(chainTrades, view.chainLinks);
+    const positionByTrade = new Map<string, CellPosition>();
+    for (const c of components) {
+      for (const [id, pos] of c.positions) positionByTrade.set(id, pos);
     }
-    return { positions, columnCount };
+    return { components, positionByTrade };
   }, [chainTrades, view.chainLinks]);
 
-  const standaloneColumns = Math.max(columnCount, 3);
+  const standaloneColumns = 3;
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -140,8 +142,8 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
         // Adjacent same-row hops get the clean curve. Anything that spans rows
         // or skips a column routes through the empty gutters so it can't cross
         // a card on the way.
-        const fp = positions.get(link.fromTradeId);
-        const tp = positions.get(link.toTradeId);
+        const fp = positionByTrade.get(link.fromTradeId);
+        const tp = positionByTrade.get(link.toTradeId);
         const straight =
           fp && tp && fp.row === tp.row && tp.column === fp.column + 1;
 
@@ -173,7 +175,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
       ro.disconnect();
       window.removeEventListener("resize", recompute);
     };
-  }, [view, positions]);
+  }, [view, positionByTrade]);
 
   return (
     <div className="space-y-3">
@@ -235,40 +237,43 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
             ))}
           </svg>
 
-          {chainTrades.length > 0 && (
-            <section className="space-y-2">
+          {components.length > 0 && (
+            <section className="space-y-6">
               {standaloneTrades.length > 0 && (
                 <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Pick chains
                 </h3>
               )}
-              <div
-                className="grid items-start gap-x-16 gap-y-8"
-                style={{
-                  gridTemplateColumns: `repeat(${columnCount}, 28rem)`,
-                  gridAutoRows: "min-content",
-                }}
-              >
-                {chainTrades.map((trade) => {
-                  const cell = positions.get(trade.tradeId);
-                  return (
-                    <div
-                      key={trade.tradeId}
-                      data-trade={trade.tradeId}
-                      style={{
-                        gridColumn: (cell?.column ?? 0) + 1,
-                        gridRow: (cell?.row ?? 0) + 1,
-                      }}
-                    >
-                      <TeamTradeCard
-                        trade={trade}
-                        sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
-                        targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+              {components.map((component, ci) => (
+                <div
+                  key={ci}
+                  className="grid w-max items-start gap-x-16 gap-y-8"
+                  style={{
+                    gridTemplateColumns: `repeat(${component.columnCount}, 28rem)`,
+                    gridAutoRows: "min-content",
+                  }}
+                >
+                  {component.trades.map((trade) => {
+                    const cell = component.positions.get(trade.tradeId);
+                    return (
+                      <div
+                        key={trade.tradeId}
+                        data-trade={trade.tradeId}
+                        style={{
+                          gridColumn: (cell?.column ?? 0) + 1,
+                          gridRow: (cell?.row ?? 0) + 1,
+                        }}
+                      >
+                        <TeamTradeCard
+                          trade={trade}
+                          sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
+                          targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </section>
           )}
 

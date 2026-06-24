@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { layoutTrades } from '@/components/trade-tracker/tradeLayout';
+import { layoutTrades, layoutChainComponents } from '@/components/trade-tracker/tradeLayout';
 import type { TeamTrade, PickChainLink } from '@/lib/trade-tracker/team-view';
 
 function trade(tradeId: string, createdAt: number): TeamTrade {
@@ -58,5 +58,41 @@ describe('layoutTrades', () => {
     const trades = [trade('t1', 100), trade('t2', 200), trade('t3', 300), trade('t4', 400)];
     const pos = layoutTrades(trades, [link('t1', 't2')]);
     for (const t of trades) expect(pos.has(t.tradeId)).toBe(true);
+  });
+});
+
+describe('layoutChainComponents', () => {
+  function trade(tradeId: string, createdAt: number): TeamTrade {
+    return { tradeId, season: '2024', createdAt, counterparties: [], tradedAway: [], receives: [] };
+  }
+  function link(fromTradeId: string, toTradeId: string): PickChainLink {
+    return { assetKey: `${fromTradeId}->${toTradeId}`, fromTradeId, toTradeId };
+  }
+
+  it('splits independent chains into separate components, each starting at column 0', () => {
+    const trades = [trade('t1', 100), trade('t2', 200), trade('t3', 300), trade('t4', 400)];
+    const comps = layoutChainComponents(trades, [link('t1', 't2'), link('t3', 't4')]);
+    expect(comps).toHaveLength(2);
+    expect(comps[0].trades.map((t) => t.tradeId)).toEqual(['t1', 't2']);
+    expect(comps[1].trades.map((t) => t.tradeId)).toEqual(['t3', 't4']);
+    // each component is laid out independently from its own column 0
+    expect(comps[0].positions.get('t1')).toEqual({ row: 0, column: 0 });
+    expect(comps[1].positions.get('t3')).toEqual({ row: 0, column: 0 });
+    expect(comps[0].columnCount).toBe(2);
+  });
+
+  it('keeps a diamond (two feeders, one target) in a single component', () => {
+    const trades = [trade('t1', 100), trade('t2', 200), trade('t3', 300)];
+    const comps = layoutChainComponents(trades, [link('t1', 't3'), link('t2', 't3')]);
+    expect(comps).toHaveLength(1);
+    expect(comps[0].trades.map((t) => t.tradeId).sort()).toEqual(['t1', 't2', 't3']);
+  });
+
+  it('orders components by their earliest trade', () => {
+    const trades = [trade('a', 500), trade('b', 600), trade('c', 100), trade('d', 200)];
+    const comps = layoutChainComponents(trades, [link('a', 'b'), link('c', 'd')]);
+    // c/d is older, so it comes first
+    expect(comps[0].trades.map((t) => t.tradeId)).toEqual(['c', 'd']);
+    expect(comps[1].trades.map((t) => t.tradeId)).toEqual(['a', 'b']);
   });
 });

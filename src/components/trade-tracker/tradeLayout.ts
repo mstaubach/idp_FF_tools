@@ -79,3 +79,64 @@ export function layoutTrades(
 
   return pos;
 }
+
+export interface ChainComponent {
+  trades: TeamTrade[];
+  positions: Map<string, CellPosition>;
+  columnCount: number;
+}
+
+// Groups linked trades into connected components (every chain link joins two
+// trades into the same component) and lays each one out independently. Rendered
+// as separate compact strips, this avoids the blank space a single shared grid
+// produced — each component is only as wide and tall as it needs to be.
+// Components are returned oldest-first by their earliest trade.
+export function layoutChainComponents(
+  trades: TeamTrade[],
+  chainLinks: PickChainLink[],
+): ChainComponent[] {
+  const ids = new Set(trades.map((t) => t.tradeId));
+  const adj = new Map<string, Set<string>>();
+  for (const t of trades) adj.set(t.tradeId, new Set());
+  const relevant: PickChainLink[] = [];
+  for (const l of chainLinks) {
+    if (ids.has(l.fromTradeId) && ids.has(l.toTradeId)) {
+      adj.get(l.fromTradeId)!.add(l.toTradeId);
+      adj.get(l.toTradeId)!.add(l.fromTradeId);
+      relevant.push(l);
+    }
+  }
+
+  const seen = new Set<string>();
+  const components: ChainComponent[] = [];
+  for (const start of trades) {
+    if (seen.has(start.tradeId)) continue;
+    const compIds = new Set<string>();
+    const queue = [start.tradeId];
+    seen.add(start.tradeId);
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      compIds.add(id);
+      for (const next of adj.get(id) ?? []) {
+        if (!seen.has(next)) {
+          seen.add(next);
+          queue.push(next);
+        }
+      }
+    }
+    const compTrades = trades.filter((t) => compIds.has(t.tradeId));
+    const compLinks = relevant.filter(
+      (l) => compIds.has(l.fromTradeId) && compIds.has(l.toTradeId),
+    );
+    const positions = layoutTrades(compTrades, compLinks);
+    let columnCount = 1;
+    for (const { column } of positions.values()) {
+      columnCount = Math.max(columnCount, column + 1);
+    }
+    components.push({ trades: compTrades, positions, columnCount });
+  }
+
+  const earliest = (c: ChainComponent) =>
+    Math.min(...c.trades.map((t) => t.createdAt));
+  return components.sort((a, b) => earliest(a) - earliest(b));
+}
