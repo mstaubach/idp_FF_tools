@@ -242,7 +242,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
               <div
                 className="grid items-start gap-x-16 gap-y-8"
                 style={{
-                  gridTemplateColumns: `repeat(${columnCount}, 20rem)`,
+                  gridTemplateColumns: `repeat(${columnCount}, 28rem)`,
                   gridAutoRows: "min-content",
                 }}
               >
@@ -278,7 +278,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
               )}
               <div
                 className="grid items-start gap-4"
-                style={{ gridTemplateColumns: `repeat(${standaloneColumns}, 20rem)` }}
+                style={{ gridTemplateColumns: `repeat(${standaloneColumns}, 28rem)` }}
               >
                 {standaloneTrades.map((trade) => (
                   <TeamTradeCard

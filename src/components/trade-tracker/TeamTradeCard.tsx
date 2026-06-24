@@ -22,12 +22,17 @@ function AssetRow({
 }) {
   if (asset.kind === "player") {
     return (
-      <li className="flex flex-wrap items-baseline gap-x-2">
-        <span className="font-medium text-slate-100">{asset.playerName}</span>
+      <li className="leading-tight">
+        <div
+          className="truncate font-medium text-slate-100"
+          title={asset.playerName}
+        >
+          {asset.playerName}
+        </div>
         {(asset.position || asset.team) && (
-          <span className="text-xs text-slate-400">
+          <div className="text-xs text-slate-400">
             {[asset.position, asset.team].filter(Boolean).join(" · ")}
-          </span>
+          </div>
         )}
       </li>
     );
@@ -39,16 +44,23 @@ function AssetRow({
   const anchor = isSource ? `src:${tradeId}:${key}` : isTarget ? `dst:${tradeId}:${key}` : undefined;
 
   return (
-    <li
-      data-anchor={anchor}
-      className="flex flex-wrap items-baseline gap-x-2"
-    >
-      <span className="font-medium text-sky-300">{asset.label}</span>
-      {isSource ? (
-        <span className="text-sm text-sky-400/80">→ traded on</span>
-      ) : (
-        <PickOutcomeBadge asset={asset} />
+    <li data-anchor={anchor} className="leading-tight">
+      <div className="font-medium text-sky-300">{asset.label}</div>
+      {asset.originalOwnerName && (
+        <div
+          className="truncate text-xs text-slate-400"
+          title={asset.originalOwnerName}
+        >
+          ({asset.originalOwnerName})
+        </div>
       )}
+      <div className="mt-0.5">
+        {isSource ? (
+          <span className="text-sm text-sky-400/80">→ traded on</span>
+        ) : (
+          <PickOutcomeBadge asset={asset} />
+        )}
+      </div>
     </li>
   );
 }
@@ -105,7 +117,7 @@ export default function TeamTradeCard({
   const date = new Date(trade.createdAt);
   const counterparty = trade.counterparties.join(", ") || "Unknown";
   return (
-    <article className="w-80 shrink-0 rounded-xl border border-pitch-700 bg-pitch-800/60 p-5">
+    <article className="w-[28rem] shrink-0 rounded-xl border border-pitch-700 bg-pitch-800/60 p-5">
       <div className="mb-1 text-sm font-semibold text-slate-200">
         Trade w/ {counterparty}
       </div>

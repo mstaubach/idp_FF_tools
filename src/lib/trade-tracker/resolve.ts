@@ -50,7 +50,10 @@ export type ReceivedAsset =
       season: string;
       round: number;
       originalRoster: number;
+      // Short label without the owner, e.g. "2024 2nd" — the owner is carried
+      // separately so the UI can put it on its own line.
       label: string;
+      originalOwnerName: string | null;
       outcome: PickOutcome;
     };
 
@@ -236,15 +239,14 @@ function buildPickAsset(
   players: Record<string, SleeperPlayer>,
 ): ReceivedAsset {
   const origOwner = names.get(pick.roster_id);
-  const label = `${pick.season} ${ordinal(pick.round)}${
-    origOwner ? ` (${origOwner})` : ""
-  }`;
+  const label = `${pick.season} ${ordinal(pick.round)}`;
   return {
     kind: "pick",
     season: pick.season,
     round: pick.round,
     originalRoster: pick.roster_id,
     label,
+    originalOwnerName: origOwner ?? null,
     outcome: resolvePick(
       pick.season,
       pick.round,

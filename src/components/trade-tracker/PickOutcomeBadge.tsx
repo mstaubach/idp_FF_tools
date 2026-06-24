@@ -8,14 +8,18 @@ export default function PickOutcomeBadge({
   const { outcome } = asset;
   if (outcome.status === "drafted") {
     return (
-      <span className="text-sm">
+      <span className="block text-sm leading-tight">
         <span className="text-slate-400">→ became </span>
-        <span className="font-semibold text-emerald-400">{outcome.playerName}</span>
+        <span
+          className="font-semibold text-emerald-400"
+          title={outcome.playerName}
+        >
+          {outcome.playerName}
+        </span>
         {(outcome.position || outcome.team) && (
-          <span className="text-slate-400">
-            {" "}
-            ({[outcome.position, outcome.team].filter(Boolean).join(" · ")}, pick{" "}
-            {outcome.pickNo})
+          <span className="block text-xs text-slate-400">
+            {[outcome.position, outcome.team].filter(Boolean).join(" · ")}, pick{" "}
+            {outcome.pickNo}
           </span>
         )}
       </span>

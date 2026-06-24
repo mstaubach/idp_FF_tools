@@ -14,6 +14,7 @@ function pickAsset(season: string, round: number, originalRoster: number): Recei
     round,
     originalRoster,
     label: `${season} round ${round}`,
+    originalOwnerName: null,
     outcome: { status: 'pending' },
   };
 }

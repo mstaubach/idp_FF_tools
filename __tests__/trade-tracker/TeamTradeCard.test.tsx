@@ -8,7 +8,7 @@ afterEach(cleanup);
 
 const pick: ReceivedAsset = {
   kind: 'pick', season: '2024', round: 2, originalRoster: 2,
-  label: '2024 2nd', outcome: { status: 'pending' },
+  label: '2024 2nd', originalOwnerName: null, outcome: { status: 'pending' },
 };
 const player: ReceivedAsset = { kind: 'player', playerName: 'Player1', position: 'WR', team: 'ARI' };
 
