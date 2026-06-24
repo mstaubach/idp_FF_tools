@@ -33,11 +33,18 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     if (!node || copyState === "working") return;
     setCopyState("working");
     try {
+      const width = node.scrollWidth;
+      const height = node.scrollHeight;
+      // Render at 2x for crispness, but cap each side so the canvas stays within
+      // browser limits (Safari clamps large canvases, which produced a squished,
+      // narrow image). Scaling down keeps the whole flow rendered and legible.
+      const maxDimension = 4000;
+      const pixelRatio = Math.min(2, maxDimension / width, maxDimension / height);
       const blob = await toBlob(node, {
         backgroundColor: CAPTURE_BACKGROUND,
-        pixelRatio: 2,
-        width: node.scrollWidth,
-        height: node.scrollHeight,
+        pixelRatio,
+        width,
+        height,
       });
       if (!blob) throw new Error("capture produced no image");
 
