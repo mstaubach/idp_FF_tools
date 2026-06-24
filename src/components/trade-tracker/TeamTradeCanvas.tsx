@@ -26,7 +26,6 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [paths, setPaths] = useState<string[]>([]);
-  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [copyState, setCopyState] = useState<"idle" | "working" | "copied" | "downloaded" | "error">("idle");
 
   async function handleCopy() {
@@ -157,7 +156,6 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
         next.push(computeArrowPath(from, to, route));
       }
       setPaths(next);
-      setSize({ w: track.scrollWidth, h: track.scrollHeight });
     };
 
     recompute();
@@ -203,9 +201,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
       <div ref={trackRef} className="relative overflow-x-auto pb-4">
         <div ref={contentRef} className="relative w-max space-y-8">
           <svg
-            className="pointer-events-none absolute left-0 top-0"
-            width={size.w}
-            height={size.h}
+            className="pointer-events-none absolute inset-0 h-full w-full"
             style={{ overflow: "visible" }}
           >
             <defs>
