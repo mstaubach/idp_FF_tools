@@ -82,14 +82,30 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     return { sourceKeysByTrade: source, targetKeysByTrade: target };
   }, [view.chainLinks]);
 
+  // Trades that take part in a pick-chain get the arrowed flow layout; the rest
+  // (the majority) are packed into a dense block so they don't each waste a row.
+  const { chainTrades, standaloneTrades } = useMemo(() => {
+    const linked = new Set<string>();
+    for (const link of view.chainLinks) {
+      linked.add(link.fromTradeId);
+      linked.add(link.toTradeId);
+    }
+    return {
+      chainTrades: view.trades.filter((t) => linked.has(t.tradeId)),
+      standaloneTrades: view.trades.filter((t) => !linked.has(t.tradeId)),
+    };
+  }, [view.trades, view.chainLinks]);
+
   const { positions, columnCount } = useMemo(() => {
-    const positions = layoutTrades(view.trades, view.chainLinks);
+    const positions = layoutTrades(chainTrades, view.chainLinks);
     let columnCount = 1;
     for (const { column } of positions.values()) {
       columnCount = Math.max(columnCount, column + 1);
     }
     return { positions, columnCount };
-  }, [view.trades, view.chainLinks]);
+  }, [chainTrades, view.chainLinks]);
+
+  const standaloneColumns = Math.max(columnCount, 3);
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -185,7 +201,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
       </div>
 
       <div ref={trackRef} className="relative overflow-x-auto pb-4">
-        <div ref={contentRef} className="relative w-max">
+        <div ref={contentRef} className="relative w-max space-y-8">
           <svg
             className="pointer-events-none absolute left-0 top-0"
             width={size.w}
@@ -216,33 +232,65 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
             ))}
           </svg>
 
-          <div
-            className="grid w-max items-start gap-x-16 gap-y-8"
-            style={{
-              gridTemplateColumns: `repeat(${columnCount}, 20rem)`,
-              gridAutoRows: "min-content",
-            }}
-          >
-            {view.trades.map((trade) => {
-              const cell = positions.get(trade.tradeId);
-              return (
-                <div
-                  key={trade.tradeId}
-                  data-trade={trade.tradeId}
-                  style={{
-                    gridColumn: (cell?.column ?? 0) + 1,
-                    gridRow: (cell?.row ?? 0) + 1,
-                  }}
-                >
+          {chainTrades.length > 0 && (
+            <section className="space-y-2">
+              {standaloneTrades.length > 0 && (
+                <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Pick chains
+                </h3>
+              )}
+              <div
+                className="grid items-start gap-x-16 gap-y-8"
+                style={{
+                  gridTemplateColumns: `repeat(${columnCount}, 20rem)`,
+                  gridAutoRows: "min-content",
+                }}
+              >
+                {chainTrades.map((trade) => {
+                  const cell = positions.get(trade.tradeId);
+                  return (
+                    <div
+                      key={trade.tradeId}
+                      data-trade={trade.tradeId}
+                      style={{
+                        gridColumn: (cell?.column ?? 0) + 1,
+                        gridRow: (cell?.row ?? 0) + 1,
+                      }}
+                    >
+                      <TeamTradeCard
+                        trade={trade}
+                        sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
+                        targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {standaloneTrades.length > 0 && (
+            <section className="space-y-2">
+              {chainTrades.length > 0 && (
+                <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Other trades
+                </h3>
+              )}
+              <div
+                className="grid items-start gap-4"
+                style={{ gridTemplateColumns: `repeat(${standaloneColumns}, 20rem)` }}
+              >
+                {standaloneTrades.map((trade) => (
                   <TeamTradeCard
+                    key={trade.tradeId}
                     trade={trade}
-                    sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
-                    targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
+                    sourceKeys={new Set()}
+                    targetKeys={new Set()}
                   />
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>
