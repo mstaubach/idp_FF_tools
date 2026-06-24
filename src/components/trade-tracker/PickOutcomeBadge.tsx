@@ -9,12 +9,14 @@ export default function PickOutcomeBadge({
   if (outcome.status === "drafted") {
     return (
       <span className="block text-sm leading-tight">
-        <span className="text-slate-400">→ became </span>
-        <span
-          className="font-semibold text-emerald-400"
-          title={outcome.playerName}
-        >
-          {outcome.playerName}
+        <span className="flex items-baseline gap-x-1">
+          <span className="text-slate-400">→</span>
+          <span
+            className="min-w-0 truncate font-semibold text-emerald-400"
+            title={outcome.playerName}
+          >
+            {outcome.playerName}
+          </span>
         </span>
         {(outcome.position || outcome.team) && (
           <span className="block text-xs text-slate-400">
