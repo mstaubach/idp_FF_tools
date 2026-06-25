@@ -20,7 +20,7 @@
     "html-to-image": "^1.11.13",
     "next": "14.2.7",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^19"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.1",
