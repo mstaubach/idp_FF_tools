@@ -34,11 +34,51 @@ export async function getLeague(leagueId: string): Promise<League | null> {
   return getJson<League>(`/league/${leagueId}`, 60 * 60);
 }
 
-// Walk the previous_league_id chain so we capture trades and drafts from every
-// season this dynasty/keeper league has existed. Newest league first.
+// A user's leagues for one NFL season. Used to walk the dynasty chain forward,
+// since Sleeper leagues only point backward (previous_league_id), not forward.
+export async function getUserLeagues(
+  userId: string,
+  season: string,
+): Promise<League[]> {
+  return (
+    (await getJson<League[]>(`/user/${userId}/leagues/nfl/${season}`, 60 * 60)) ??
+    []
+  );
+}
+
+// Find the most recent league in the dynasty, starting from any season's
+// league. Sleeper has no successor pointer, so for each following season we
+// look through a current member's leagues for one whose previous_league_id
+// points back at the league we're holding. Stops when no successor exists.
+async function getNewestLeague(start: League): Promise<League> {
+  let head = start;
+  for (let guard = 0; guard < 20; guard++) {
+    const nextSeason = String(Number(head.season) + 1);
+    const members = await getUsers(head.league_id);
+    let successor: League | null = null;
+    for (const member of members) {
+      const leagues = await getUserLeagues(member.user_id, nextSeason);
+      successor =
+        leagues.find((l) => l.previous_league_id === head.league_id) ?? null;
+      if (successor) break;
+    }
+    if (!successor) break;
+    head = successor;
+  }
+  return head;
+}
+
+// Capture trades and drafts from every season this dynasty has existed,
+// regardless of which season's league id was entered: walk forward to the
+// newest league, then walk the previous_league_id chain backward. Newest first.
 export async function getLeagueChain(leagueId: string): Promise<League[]> {
+  const start = await getLeague(leagueId);
+  if (!start) return [];
+
+  const newest = await getNewestLeague(start);
+
   const chain: League[] = [];
-  let current: string | null = leagueId;
+  let current: string | null = newest.league_id;
   const seen = new Set<string>();
   while (current && !seen.has(current)) {
     seen.add(current);
@@ -75,6 +115,13 @@ export async function getTransactions(
 
 export async function getDrafts(leagueId: string): Promise<Draft[]> {
   return (await getJson<Draft[]>(`/league/${leagueId}/drafts`, 60 * 60)) ?? [];
+}
+
+// The /league/{id}/drafts list endpoint omits slot_to_roster_id; only the
+// single-draft endpoint includes it. We need it to map draft slots back to the
+// franchise that originally owned each pick.
+export async function getDraft(draftId: string): Promise<Draft | null> {
+  return getJson<Draft>(`/draft/${draftId}`, 60 * 60);
 }
 
 export async function getDraftPicks(

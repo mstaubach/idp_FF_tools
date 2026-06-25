@@ -38,7 +38,7 @@ const tools = [
 
 export default function Home() {
   return (
-    <div className="space-y-12">
+    <div className="mx-auto max-w-6xl space-y-12">
       <section className="space-y-4 py-6 text-center">
         <span className="inline-block rounded-full bg-emerald-600/20 px-3 py-1 text-sm font-medium text-emerald-400">
           For Sleeper IDP dynasty leagues

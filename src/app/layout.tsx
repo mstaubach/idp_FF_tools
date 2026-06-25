@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} min-h-screen`}>
         <NavBar />
-        <div className="mx-auto max-w-6xl px-4 py-8">{children}</div>
+        <div className="mx-auto max-w-[120rem] px-4 py-8">{children}</div>
         <Footer />
       </body>
     </html>
