@@ -19,7 +19,7 @@
     "fuse.js": "^7.1.0",
     "html-to-image": "^1.11.13",
     "next": "14.2.7",
-    "react": "^18",
+    "react": "^19",
     "react-dom": "^18"
   },
   "devDependencies": {
