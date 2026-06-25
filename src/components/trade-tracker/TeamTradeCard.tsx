@@ -117,7 +117,7 @@ export default function TeamTradeCard({
   const date = new Date(trade.createdAt);
   const counterparty = trade.counterparties.join(", ") || "Unknown";
   return (
-    <article className="w-[28rem] shrink-0 rounded-xl border border-pitch-700 bg-pitch-800/60 p-5">
+    <article className="w-md shrink-0 rounded-xl border border-pitch-700 bg-pitch-800/60 p-5">
       <div className="mb-1 text-sm font-semibold text-slate-200">
         Trade w/ {counterparty}
       </div>

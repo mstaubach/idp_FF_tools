@@ -57,11 +57,11 @@ export default function IdpCheckerPage() {
         </p>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="bg-white rounded-lg shadow-xs border p-4">
             <LeagueInput leagueId={leagueId} onChange={setLeagueId} />
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="bg-white rounded-lg shadow-xs border p-4">
             <PlayerInput onSubmit={handleSubmit} isLoading={isLoading} />
           </div>
 
@@ -70,12 +70,12 @@ export default function IdpCheckerPage() {
           {data && (
             <>
               {data.waiverInfo && (
-                <div className="bg-white rounded-lg shadow-sm border p-4">
+                <div className="bg-white rounded-lg shadow-xs border p-4">
                   <WaiverInfo waiverInfo={data.waiverInfo} />
                 </div>
               )}
 
-              <div className="bg-white rounded-lg shadow-sm border p-4">
+              <div className="bg-white rounded-lg shadow-xs border p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-900">
                     Results ({data.results.length} players)

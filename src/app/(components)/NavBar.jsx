@@ -18,7 +18,7 @@ const NavBar = () => {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav className="border-b border-pitch-700 bg-pitch-900/80 backdrop-blur">
+    <nav className="border-b border-pitch-700 bg-pitch-900/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-[120rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl">🏈</span>

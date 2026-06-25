@@ -18,7 +18,7 @@ export default function WaiverInfo({ waiverInfo }: WaiverInfoProps) {
           {waiverInfo.faabBudgets
             .sort((a, b) => b.remaining - a.remaining)
             .map((team, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded px-3 py-2 text-xs">
+              <div key={i} className="bg-white border border-gray-200 rounded-sm px-3 py-2 text-xs">
                 <div className="font-medium text-gray-700 truncate">{team.teamName}</div>
                 <div className="text-gray-500">${team.remaining} remaining</div>
               </div>

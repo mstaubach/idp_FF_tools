@@ -39,7 +39,7 @@ export default function TradeTrackerHome({
             inputMode="numeric"
             placeholder="e.g. 992734045862027264"
             required
-            className="flex-1 rounded-lg border border-pitch-700 bg-pitch-800 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+            className="flex-1 rounded-lg border border-pitch-700 bg-pitch-800 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-hidden"
           />
           <button
             type="submit"
