@@ -9,11 +9,12 @@ async function goToLeague(formData: FormData) {
   redirect("/standings?error=1");
 }
 
-export default function StandingsHome({
+export default async function StandingsHome({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const { error } = await searchParams;
   return (
     <main className="space-y-8">
       <section className="space-y-3">
@@ -48,7 +49,7 @@ export default function StandingsHome({
             View standings
           </button>
         </div>
-        {searchParams.error && (
+        {error && (
           <p className="text-sm text-red-400">
             Please enter a valid Sleeper league ID.
           </p>

@@ -8,15 +8,16 @@ export const revalidate = 300;
 export default async function TeamPage({
   params,
 }: {
-  params: { leagueId: string; rosterId: string };
+  params: Promise<{ leagueId: string; rosterId: string }>;
 }) {
-  const rosterId = Number(params.rosterId);
+  const { leagueId, rosterId: rosterIdParam } = await params;
+  const rosterId = Number(rosterIdParam);
 
   let data;
   try {
     data = Number.isNaN(rosterId)
       ? null
-      : await buildTeamView(params.leagueId, rosterId);
+      : await buildTeamView(leagueId, rosterId);
   } catch {
     return (
       <Message
@@ -46,7 +47,7 @@ export default async function TeamPage({
           </p>
         </div>
         <Link
-          href={`/trade-tracker/league/${params.leagueId}`}
+          href={`/trade-tracker/league/${leagueId}`}
           className="text-sm text-emerald-400 hover:underline"
         >
           ← All teams
