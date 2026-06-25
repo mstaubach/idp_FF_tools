@@ -96,7 +96,7 @@ export default function ManualTab({ players, onAdd, onRemove }: ManualTabProps) 
       {players.length > 0 && (
         <div className="mt-3 space-y-1">
           {players.map((p, i) => (
-            <div key={i} className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded text-sm">
+            <div key={i} className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded-sm text-sm">
               <span>{i + 1}. {p.name} {p.position && <span className="text-gray-400">({p.position})</span>}</span>
               <button onClick={() => onRemove(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
             </div>

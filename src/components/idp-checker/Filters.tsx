@@ -35,7 +35,7 @@ export default function Filters({
           type="checkbox"
           checked={availableOnly}
           onChange={(e) => onAvailableOnlyChange(e.target.checked)}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
         />
         Available only
       </label>
