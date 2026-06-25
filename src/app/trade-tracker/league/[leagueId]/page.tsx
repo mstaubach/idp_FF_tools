@@ -7,11 +7,12 @@ export const revalidate = 300;
 export default async function LeaguePage({
   params,
 }: {
-  params: { leagueId: string };
+  params: Promise<{ leagueId: string }>;
 }) {
+  const { leagueId } = await params;
   let data;
   try {
-    data = await listLeagueTeams(params.leagueId);
+    data = await listLeagueTeams(leagueId);
   } catch {
     return (
       <Message
@@ -25,7 +26,7 @@ export default async function LeaguePage({
     return (
       <Message
         title="League not found"
-        body={`No Sleeper league matched the ID "${params.leagueId}". Make sure you copied the full ID.`}
+        body={`No Sleeper league matched the ID "${leagueId}". Make sure you copied the full ID.`}
       />
     );
   }
@@ -50,7 +51,7 @@ export default async function LeaguePage({
         {teams.map((t) => (
           <li key={t.rosterId}>
             <Link
-              href={`/trade-tracker/league/${params.leagueId}/team/${t.rosterId}`}
+              href={`/trade-tracker/league/${leagueId}/team/${t.rosterId}`}
               className="flex items-center justify-between rounded-xl border border-pitch-700 bg-pitch-800/60 p-4 hover:border-emerald-500/50"
             >
               <span>

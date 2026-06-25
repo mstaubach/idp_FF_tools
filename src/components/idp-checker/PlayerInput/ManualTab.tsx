@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 interface AutocompletePlayer {
   id: string;
@@ -17,9 +17,8 @@ interface ManualTabProps {
 
 export default function ManualTab({ players, onAdd, onRemove }: ManualTabProps) {
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<AutocompletePlayer[]>([]);
   const [allPlayers, setAllPlayers] = useState<AutocompletePlayer[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,23 +30,19 @@ export default function ManualTab({ players, onAdd, onRemove }: ManualTabProps) 
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (query.length < 2) {
-      setSuggestions([]);
-      return;
-    }
+  // Derived from the query — computed during render rather than in an effect.
+  const suggestions = useMemo<AutocompletePlayer[]>(() => {
+    if (query.length < 2) return [];
     const lower = query.toLowerCase();
-    const filtered = allPlayers
+    return allPlayers
       .filter(p => p.name.toLowerCase().includes(lower))
       .slice(0, 8);
-    setSuggestions(filtered);
-    setShowSuggestions(filtered.length > 0);
   }, [query, allPlayers]);
 
   const handleSelect = (player: AutocompletePlayer) => {
     onAdd(player.name, player.position);
     setQuery('');
-    setShowSuggestions(false);
+    setOpen(false);
     inputRef.current?.focus();
   };
 
@@ -70,14 +65,14 @@ export default function ManualTab({ players, onAdd, onRemove }: ManualTabProps) 
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onKeyDown={handleKeyDown}
-          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
           placeholder="Type a player name..."
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
-        {showSuggestions && (
+        {open && suggestions.length > 0 && (
           <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
             {suggestions.map((p) => (
               <li

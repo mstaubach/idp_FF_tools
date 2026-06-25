@@ -22,9 +22,10 @@ async function fetchLeagueName(leagueId: string): Promise<string | null> {
 export default async function LeagueStandingsPage({
   params,
 }: {
-  params: { leagueId: string };
+  params: Promise<{ leagueId: string }>;
 }) {
-  const leagueName = await fetchLeagueName(params.leagueId);
+  const { leagueId } = await params;
+  const leagueName = await fetchLeagueName(leagueId);
 
   return (
     <main className="space-y-6">
@@ -33,7 +34,7 @@ export default async function LeagueStandingsPage({
           <h1 className="text-2xl font-bold">
             {leagueName ?? "League Standings"}
           </h1>
-          <p className="text-sm text-slate-400">League ID {params.leagueId}</p>
+          <p className="text-sm text-slate-400">League ID {leagueId}</p>
         </div>
         <Link
           href="/standings"
@@ -43,7 +44,7 @@ export default async function LeagueStandingsPage({
         </Link>
       </div>
 
-      <StandingsTable leagueId={params.leagueId} />
+      <StandingsTable leagueId={leagueId} />
     </main>
   );
 }
