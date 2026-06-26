@@ -20,8 +20,9 @@ export default async function StandingsHome({
       <section className="space-y-3">
         <h1 className="text-3xl font-bold">League Standings</h1>
         <p className="max-w-2xl text-slate-300">
-          Enter any Sleeper league ID to see its current standings — wins,
-          losses, and ties for every roster, pulled live from the Sleeper API.
+          Enter any Sleeper league ID to see its all-time standings — total wins,
+          losses, and championships for every manager across the dynasty&apos;s
+          history, with a drill-down into any individual season.
         </p>
       </section>
 
