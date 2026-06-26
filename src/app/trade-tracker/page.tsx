@@ -16,7 +16,7 @@ export default async function TradeTrackerHome({
 }) {
   const { error } = await searchParams;
   return (
-    <main className="space-y-8">
+    <main className="mx-auto max-w-6xl space-y-8">
       <section className="space-y-3">
         <h1 className="text-3xl font-bold">
           What did your trade actually become?

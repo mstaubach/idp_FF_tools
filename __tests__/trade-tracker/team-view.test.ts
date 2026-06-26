@@ -80,7 +80,7 @@ describe('deriveTeamView', () => {
     expect(view.trades.map((t) => t.tradeId)).toEqual(['t1', 't2']);
 
     const t1 = view.trades[0];
-    expect(t1.receives.map((a) => (a.kind === 'pick' ? 'pick' : a.playerName))).toEqual(['pick']);
+    expect(t1.receives.map((a) => (a.kind === 'player' ? a.playerName : a.kind))).toEqual(['pick']);
     expect(t1.tradedAway.map((a) => (a.kind === 'player' ? a.playerName : 'pick'))).toEqual(['Player1']);
     expect(t1.counterparties).toEqual(['Bravo']);
   });

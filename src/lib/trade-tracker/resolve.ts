@@ -46,6 +46,13 @@ export type ReceivedAsset =
       team: string | null;
     }
   | {
+      kind: "faab";
+      // The FAAB dollars moved. null when Sleeper omitted the amount, in which
+      // case the UI just labels it "FAAB".
+      amount: number | null;
+      label: string;
+    }
+  | {
       kind: "pick";
       season: string;
       round: number;
@@ -188,6 +195,19 @@ function buildFlows(
     }
   }
 
+  // FAAB: sender gives waiver budget, receiver gets it.
+  if (tx.waiver_budget) {
+    for (const wb of tx.waiver_budget) {
+      flows.push({
+        fromRosterId: wb.sender,
+        fromTeamName: names.get(wb.sender) ?? null,
+        toRosterId: wb.receiver,
+        toTeamName: names.get(wb.receiver) ?? `Roster ${wb.receiver}`,
+        asset: buildFaabAsset(wb.amount),
+      });
+    }
+  }
+
   // Picks: previous_owner_id is the giver, owner_id is the receiver.
   for (const pick of tx.draft_picks) {
     flows.push({
@@ -228,6 +248,17 @@ function buildTradeView(
     createdAt: tx.created,
     sides,
     flows,
+  };
+}
+
+function buildFaabAsset(amount: number | null | undefined): ReceivedAsset {
+  // Sleeper reports the dollar amount on the transfer; show it when present and
+  // fall back to a bare "FAAB" label when it's missing or non-positive.
+  const valid = typeof amount === "number" && amount > 0 ? amount : null;
+  return {
+    kind: "faab",
+    amount: valid,
+    label: valid != null ? `$${valid} FAAB` : "FAAB",
   };
 }
 

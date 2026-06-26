@@ -47,6 +47,16 @@ export interface Transaction {
   // player_id -> roster_id that dropped the player
   drops: Record<string, number> | null;
   draft_picks: TradedDraftPick[];
+  // FAAB (waiver budget) moved in this trade. sender/receiver are roster_ids,
+  // amount is the dollar figure. Absent on trades with no FAAB component.
+  waiver_budget?: WaiverBudgetTransfer[] | null;
+}
+
+// A FAAB transfer inside a trade transaction.
+export interface WaiverBudgetTransfer {
+  sender: number;
+  receiver: number;
+  amount: number;
 }
 
 export interface Draft {
