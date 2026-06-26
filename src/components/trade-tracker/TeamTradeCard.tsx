@@ -38,6 +38,14 @@ function AssetRow({
     );
   }
 
+  if (asset.kind === "faab") {
+    return (
+      <li className="leading-tight">
+        <div className="font-medium text-amber-200/60">{asset.label}</div>
+      </li>
+    );
+  }
+
   const key = keyOf(asset);
   const isSource = side === "receives" && sourceKeys.has(key);
   const isTarget = side === "tradedAway" && targetKeys.has(key);

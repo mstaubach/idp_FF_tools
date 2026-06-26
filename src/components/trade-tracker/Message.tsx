@@ -8,7 +8,7 @@ export default function Message({
   body: string;
 }) {
   return (
-    <main className="space-y-4">
+    <main className="mx-auto max-w-6xl space-y-4">
       <div className="rounded-xl border border-pitch-700 bg-pitch-800/60 p-6">
         <h1 className="mb-1 text-xl font-bold">{title}</h1>
         <p className="text-slate-300">{body}</p>

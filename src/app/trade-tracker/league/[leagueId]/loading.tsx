@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <main className="space-y-4">
+    <main className="mx-auto max-w-6xl space-y-4">
       <div className="h-7 w-48 animate-pulse rounded-sm bg-pitch-700" />
       <p className="text-sm text-slate-400">
         Fetching league history and resolving traded picks…
