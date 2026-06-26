@@ -55,6 +55,26 @@ describe('buildSeasonStandings', () => {
     expect(s.championOwnerId).toBe('alice');
     expect(s.season).toBe('2024');
   });
+
+  it('exercises losses-asc and fpts-desc tiebreakers', () => {
+    // All four teams tied on wins (8). alice/bob tied on W+L → fpts decides.
+    // carol/dave tied on W+L → fpts decides. alice/bob have fewer losses → rank above carol/dave.
+    const s: SeasonInput = {
+      league: { league_id: 'LT', name: 'Tiebreak', season: '2023', previous_league_id: null, total_rosters: 4 },
+      rosters: [
+        roster(1, 'alice', 8, 4, 0, 1500),
+        roster(2, 'bob',   8, 4, 0, 1400),
+        roster(3, 'carol', 8, 6, 0, 1600),
+        roster(4, 'dave',  8, 6, 0, 1300),
+      ],
+      users: [user('alice', 'Alice FC'), user('bob', 'Bob United'), user('carol', 'Carol City'), user('dave', 'Dave Rovers')],
+      bracket: [],
+    };
+    const standings = buildSeasonStandings(s);
+    // alice beats bob on fpts (same W+L). carol/dave have more losses → rank below alice/bob.
+    // carol beats dave on fpts (same W+L).
+    expect(standings.rows.map((r) => r.ownerId)).toEqual(['alice', 'bob', 'carol', 'dave']);
+  });
 });
 
 describe('buildLeagueHistory', () => {
@@ -98,6 +118,28 @@ describe('buildLeagueHistory', () => {
     expect(erin.isCurrentMember).toBe(true);
     // in-progress 2025 contributes no champion
     expect(h.champions.map((c) => c.season)).toEqual(['2024']);
+  });
+
+  it('counts championships === 2 for a repeat champion', () => {
+    const s2024: SeasonInput = {
+      league: { league_id: 'L24', name: 'Dynasty', season: '2024', previous_league_id: null, total_rosters: 4, status: 'complete' },
+      rosters: [roster(1, 'alice', 10, 4, 0, 1500), roster(2, 'bob', 8, 6, 0, 1400), roster(3, 'carol', 6, 8, 0, 1300), roster(4, 'dave', 4, 10, 0, 1200)],
+      users: [user('alice', 'Alice FC'), user('bob', 'Bob United'), user('carol', 'Carol City'), user('dave', 'Dave Rovers')],
+      // alice wins 2024
+      bracket: [{ r: 2, m: 3, t1: 1, t2: 2, w: 1, l: 2, p: 1 }],
+    };
+    const s2025: SeasonInput = {
+      league: { league_id: 'L25', name: 'Dynasty', season: '2025', previous_league_id: 'L24', total_rosters: 4, status: 'complete' },
+      rosters: [roster(1, 'alice', 11, 3, 0, 1600), roster(2, 'bob', 9, 5, 0, 1500), roster(3, 'carol', 7, 7, 0, 1350), roster(4, 'dave', 5, 9, 0, 1250)],
+      users: [user('alice', 'Alice FC'), user('bob', 'Bob United'), user('carol', 'Carol City'), user('dave', 'Dave Rovers')],
+      // alice wins 2025 again
+      bracket: [{ r: 2, m: 3, t1: 1, t2: 2, w: 1, l: 2, p: 1 }],
+    };
+    const h = buildLeagueHistory([s2025, s2024]);
+    const alice = h.allTime.find((m) => m.ownerId === 'alice')!;
+    expect(alice.championships).toBe(2);
+    expect(h.champions.filter((c) => c.ownerId === 'alice')).toHaveLength(2);
+    expect(h.champions.map((c) => c.season)).toEqual(['2025', '2024']);
   });
 
   it('computes winPct as (wins + 0.5*ties) / games, 0 when no games', () => {

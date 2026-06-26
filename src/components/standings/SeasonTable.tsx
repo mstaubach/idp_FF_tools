@@ -6,11 +6,11 @@ export default function SeasonTable({ season }: { season: SeasonStandings }) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-pitch-700 text-left text-slate-400">
-            <th className="p-3 font-medium">#</th>
-            <th className="p-3 font-medium">Team</th>
-            <th className="p-3 font-medium">W</th>
-            <th className="p-3 font-medium">L</th>
-            <th className="p-3 font-medium">T</th>
+            <th className="p-3 font-medium" scope="col">#</th>
+            <th className="p-3 font-medium" scope="col">Team</th>
+            <th className="p-3 font-medium" scope="col">W</th>
+            <th className="p-3 font-medium" scope="col">L</th>
+            <th className="p-3 font-medium" scope="col">T</th>
           </tr>
         </thead>
         <tbody>
