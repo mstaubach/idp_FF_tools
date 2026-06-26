@@ -1,23 +1,11 @@
 import Link from "next/link";
-import StandingsTable from "../../(components)/StandingsTable";
+import { getLeagueName, loadLeagueHistory } from "@/lib/standings/sleeper";
+import ChampionsStrip from "@/components/standings/ChampionsStrip";
+import StandingsView from "@/components/standings/StandingsView";
 
-// Standings are fetched live per request so the build never depends on
-// outbound network access.
+// Standings are fetched per request (the client uses revalidate TTLs); the
+// build never makes network calls.
 export const dynamic = "force-dynamic";
-
-async function fetchLeagueName(leagueId: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://api.sleeper.app/v1/league/${leagueId}`,
-      { cache: "no-store" }
-    );
-    if (!res.ok) return null;
-    const league = await res.json();
-    return league?.name ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export default async function LeagueStandingsPage({
   params,
@@ -25,7 +13,10 @@ export default async function LeagueStandingsPage({
   params: Promise<{ leagueId: string }>;
 }) {
   const { leagueId } = await params;
-  const leagueName = await fetchLeagueName(leagueId);
+  const [leagueName, history] = await Promise.all([
+    getLeagueName(leagueId),
+    loadLeagueHistory(leagueId),
+  ]);
 
   return (
     <main className="mx-auto max-w-6xl space-y-6">
@@ -34,17 +25,24 @@ export default async function LeagueStandingsPage({
           <h1 className="text-2xl font-bold">
             {leagueName ?? "League Standings"}
           </h1>
-          <p className="text-sm text-slate-400">League ID {leagueId}</p>
+          <p className="text-sm text-slate-400">All-time history · League ID {leagueId}</p>
         </div>
-        <Link
-          href="/standings"
-          className="text-sm text-emerald-400 hover:underline"
-        >
+        <Link href="/standings" className="text-sm text-emerald-400 hover:underline">
           ← Look up another league
         </Link>
       </div>
 
-      <StandingsTable leagueId={leagueId} />
+      {history ? (
+        <>
+          <ChampionsStrip champions={history.champions} />
+          <StandingsView history={history} />
+        </>
+      ) : (
+        <div className="rounded-xl border border-pitch-700 bg-pitch-800/50 p-5 text-sm text-slate-300">
+          Standings are temporarily unavailable. The Sleeper API couldn&apos;t be
+          reached, or this league ID has no data — try again in a moment.
+        </div>
+      )}
     </main>
   );
 }
