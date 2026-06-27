@@ -1,15 +1,12 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { toBlob } from "html-to-image";
 import type { TeamView } from "@/lib/trade-tracker/team-view";
 import TeamTradeCard from "./TeamTradeCard";
 import { computeArrowPath, type GutterRoute } from "./arrowPath";
 import { layoutChainComponents, type CellPosition } from "./tradeLayout";
-
-// Matches the app's body background (bg-pitch-900) so the screenshot isn't
-// transparent where it shows between cards.
-const CAPTURE_BACKGROUND = "#0b1120";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -27,6 +24,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [paths, setPaths] = useState<string[]>([]);
   const [copyState, setCopyState] = useState<"idle" | "working" | "copied" | "downloaded" | "error">("idle");
+  const { resolvedTheme } = useTheme();
 
   async function handleCopy() {
     const node = contentRef.current;
@@ -35,13 +33,11 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     try {
       const width = node.scrollWidth;
       const height = node.scrollHeight;
-      // Render at 2x for crispness, but cap each side so the canvas stays within
-      // browser limits (Safari clamps large canvases, which produced a squished,
-      // narrow image). Scaling down keeps the whole flow rendered and legible.
       const maxDimension = 4000;
       const pixelRatio = Math.min(2, maxDimension / width, maxDimension / height);
+      const captureBackground = resolvedTheme === "light" ? "#f9fafb" : "#0b1120";
       const blob = await toBlob(node, {
-        backgroundColor: CAPTURE_BACKGROUND,
+        backgroundColor: captureBackground,
         pixelRatio,
         width,
         height,
@@ -88,8 +84,6 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     return { sourceKeysByTrade: source, targetKeysByTrade: target };
   }, [view.chainLinks]);
 
-  // Trades that take part in a pick-chain get the arrowed flow layout; the rest
-  // (the majority) are packed into a dense block so they don't each waste a row.
   const { chainTrades, standaloneTrades } = useMemo(() => {
     const linked = new Set<string>();
     for (const link of view.chainLinks) {
@@ -102,8 +96,6 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     };
   }, [view.trades, view.chainLinks]);
 
-  // Each connected chain is laid out as its own compact strip; merge their
-  // positions into one lookup for the arrow-routing logic below.
   const { components, positionByTrade } = useMemo(() => {
     const components = layoutChainComponents(chainTrades, view.chainLinks);
     const positionByTrade = new Map<string, CellPosition>();
@@ -139,9 +131,6 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
           y: toContentY(d.top + d.height / 2),
         };
 
-        // Adjacent same-row hops get the clean curve. Anything that spans rows
-        // or skips a column routes through the empty gutters so it can't cross
-        // a card on the way.
         const fp = positionByTrade.get(link.fromTradeId);
         const tp = positionByTrade.get(link.toTradeId);
         const straight =
@@ -184,7 +173,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
           type="button"
           onClick={handleCopy}
           disabled={copyState === "working"}
-          className="inline-flex items-center gap-2 rounded-lg border border-pitch-700 bg-pitch-800 px-3 py-1.5 text-sm font-medium text-slate-200 hover:border-emerald-500/50 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-green-600/50 disabled:opacity-60 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-200 dark:hover:border-green-600/50"
         >
           <svg
             width="14"
@@ -202,7 +191,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
           </svg>
           {copyLabel}
         </button>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-gray-400 dark:text-slate-500">
           Copies the whole flow as an image to paste anywhere.
         </span>
       </div>
@@ -240,7 +229,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
           {components.length > 0 && (
             <section className="space-y-6">
               {standaloneTrades.length > 0 && (
-                <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
                   Pick chains
                 </h3>
               )}
@@ -280,7 +269,7 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
           {standaloneTrades.length > 0 && (
             <section className="space-y-2">
               {chainTrades.length > 0 && (
-                <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
                   Other trades
                 </h3>
               )}

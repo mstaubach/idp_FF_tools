@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import NavBar from "./(components)/NavBar";
 import Footer from "./(components)/Footer";
@@ -18,11 +19,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen`}>
-        <NavBar />
-        <div className="mx-auto max-w-[120rem] px-4 py-8">{children}</div>
-        <Footer />
+        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
+          <NavBar />
+          <div className="mx-auto max-w-[120rem] px-4 py-8">{children}</div>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );

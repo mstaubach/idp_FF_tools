@@ -30,7 +30,6 @@ export default function ManualTab({ players, onAdd, onRemove }: ManualTabProps) 
       .catch(() => {});
   }, []);
 
-  // Derived from the query — computed during render rather than in an effect.
   const suggestions = useMemo<AutocompletePlayer[]>(() => {
     if (query.length < 2) return [];
     const lower = query.toLowerCase();
@@ -70,18 +69,18 @@ export default function ManualTab({ players, onAdd, onRemove }: ManualTabProps) 
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
           placeholder="Type a player name..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-pitch-700 rounded-md text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-pitch-900 focus:ring-2 focus:ring-green-600 focus:border-green-600"
         />
         {open && suggestions.length > 0 && (
-          <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
+          <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-pitch-800 border border-gray-200 dark:border-pitch-700 rounded-md shadow-lg max-h-48 overflow-auto">
             {suggestions.map((p) => (
               <li
                 key={p.id}
                 onMouseDown={() => handleSelect(p)}
-                className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer flex justify-between"
+                className="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-pitch-700 cursor-pointer flex justify-between text-gray-900 dark:text-slate-100"
               >
                 <span>{p.name}</span>
-                <span className="text-gray-400">{p.position} - {p.team}</span>
+                <span className="text-gray-400 dark:text-slate-500">{p.position} - {p.team}</span>
               </li>
             ))}
           </ul>
@@ -91,15 +90,15 @@ export default function ManualTab({ players, onAdd, onRemove }: ManualTabProps) 
       {players.length > 0 && (
         <div className="mt-3 space-y-1">
           {players.map((p, i) => (
-            <div key={i} className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded-sm text-sm">
-              <span>{i + 1}. {p.name} {p.position && <span className="text-gray-400">({p.position})</span>}</span>
+            <div key={i} className="flex items-center justify-between bg-gray-50 dark:bg-pitch-900 px-3 py-1.5 rounded-sm text-sm text-gray-900 dark:text-slate-100">
+              <span>{i + 1}. {p.name} {p.position && <span className="text-gray-400 dark:text-slate-500">({p.position})</span>}</span>
               <button onClick={() => onRemove(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
             </div>
           ))}
         </div>
       )}
 
-      <p className="text-xs text-gray-400 mt-2">Type to search, press Enter to add. Max 200 players.</p>
+      <p className="text-xs text-gray-400 dark:text-slate-500 mt-2">Type to search, press Enter to add. Max 200 players.</p>
     </div>
   );
 }

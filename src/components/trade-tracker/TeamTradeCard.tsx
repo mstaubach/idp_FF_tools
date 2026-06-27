@@ -24,13 +24,13 @@ function AssetRow({
     return (
       <li className="leading-tight">
         <div
-          className="truncate font-medium text-slate-100"
+          className="truncate font-medium text-gray-900 dark:text-slate-100"
           title={asset.playerName}
         >
           {asset.playerName}
         </div>
         {(asset.position || asset.team) && (
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-gray-500 dark:text-slate-400">
             {[asset.position, asset.team].filter(Boolean).join(" · ")}
           </div>
         )}
@@ -41,7 +41,7 @@ function AssetRow({
   if (asset.kind === "faab") {
     return (
       <li className="leading-tight">
-        <div className="font-medium text-amber-200/60">{asset.label}</div>
+        <div className="font-medium text-amber-600/80 dark:text-amber-200/60">{asset.label}</div>
       </li>
     );
   }
@@ -53,10 +53,10 @@ function AssetRow({
 
   return (
     <li data-anchor={anchor} className="leading-tight">
-      <div className="font-medium text-sky-300">{asset.label}</div>
+      <div className="font-medium text-sky-600 dark:text-sky-300">{asset.label}</div>
       {asset.originalOwnerName && (
         <div
-          className="truncate text-xs text-slate-400"
+          className="truncate text-xs text-gray-500 dark:text-slate-400"
           title={asset.originalOwnerName}
         >
           ({asset.originalOwnerName})
@@ -64,7 +64,7 @@ function AssetRow({
       )}
       <div className="mt-0.5">
         {isSource ? (
-          <span className="text-sm text-sky-400/80">→ traded pick</span>
+          <span className="text-sm text-sky-500 dark:text-sky-400/80">→ traded pick</span>
         ) : (
           <PickOutcomeBadge asset={asset} />
         )}
@@ -89,8 +89,8 @@ function Column({
   tradeId: string;
 }) {
   return (
-    <div className="rounded-lg border border-pitch-700 bg-pitch-900/60 p-4">
-      <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-pitch-700 dark:bg-pitch-900/60">
+      <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
         {title}
       </h4>
       {assets.length > 0 ? (
@@ -107,7 +107,7 @@ function Column({
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-slate-500">Nothing</p>
+        <p className="text-sm text-gray-400 dark:text-slate-500">Nothing</p>
       )}
     </div>
   );
@@ -125,11 +125,11 @@ export default function TeamTradeCard({
   const date = new Date(trade.createdAt);
   const counterparty = trade.counterparties.join(", ") || "Unknown";
   return (
-    <article className="w-md shrink-0 rounded-xl border border-pitch-700 bg-pitch-800/60 p-5">
-      <div className="mb-1 text-sm font-semibold text-slate-200">
+    <article className="w-md shrink-0 rounded-xl border border-gray-200 bg-white p-5 dark:border-pitch-700 dark:bg-pitch-800/60">
+      <div className="mb-1 text-sm font-semibold text-gray-800 dark:text-slate-200">
         Trade w/ {counterparty}
       </div>
-      <div className="mb-4 flex items-center justify-between text-xs text-slate-400">
+      <div className="mb-4 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
         <span>{trade.season} season</span>
         <time dateTime={date.toISOString()}>
           {date.toLocaleDateString(undefined, {

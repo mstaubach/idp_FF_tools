@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 async function goToLeague(formData: FormData) {
   "use server";
   const raw = String(formData.get("leagueId") ?? "").trim();
-  // Accept either a bare league ID or a pasted Sleeper URL containing one.
   const match = raw.match(/(\d{6,})/);
   if (match) redirect(`/standings/${match[1]}`);
   redirect("/standings?error=1");
@@ -16,20 +15,20 @@ export default async function StandingsHome({
 }) {
   const { error } = await searchParams;
   return (
-    <main className="mx-auto max-w-6xl space-y-8">
+    <main className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-3">
-        <h1 className="text-3xl font-bold">League Standings</h1>
-        <p className="max-w-2xl text-slate-300">
+        <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100">League Standings</h1>
+        <p className="text-gray-600 dark:text-slate-300">
           Enter any Sleeper league ID to see its all-time standings — total wins,
           losses, and championships for every manager across the dynasty&apos;s
           history, with a drill-down into any individual season.
         </p>
       </section>
 
-      <form action={goToLeague} className="max-w-xl space-y-3">
+      <form action={goToLeague} className="space-y-3">
         <label
           htmlFor="leagueId"
-          className="block text-sm font-medium text-slate-300"
+          className="block text-sm font-medium text-gray-700 dark:text-slate-300"
         >
           Sleeper League ID
         </label>
@@ -41,29 +40,29 @@ export default async function StandingsHome({
             inputMode="numeric"
             placeholder="e.g. 1048426134855081984"
             required
-            className="flex-1 rounded-lg border border-pitch-700 bg-pitch-800 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-hidden"
+            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:border-green-600 focus:outline-hidden dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
           <button
             type="submit"
-            className="rounded-lg bg-emerald-600 px-5 py-2.5 font-semibold text-white transition hover:bg-emerald-500"
+            className="rounded-lg bg-green-700 px-5 py-2.5 font-semibold text-white transition hover:bg-green-600"
           >
             View standings
           </button>
         </div>
         {error && (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-red-500 dark:text-red-400">
             Please enter a valid Sleeper league ID.
           </p>
         )}
       </form>
 
-      <section className="max-w-2xl rounded-xl border border-pitch-700 bg-pitch-800/50 p-5 text-sm text-slate-300">
-        <h2 className="mb-2 font-semibold text-slate-100">
+      <section className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 dark:border-pitch-700 dark:bg-pitch-800/50 dark:text-slate-300">
+        <h2 className="mb-2 font-semibold text-gray-900 dark:text-slate-100">
           Where do I find my league ID?
         </h2>
         <p>
           Open your league in the Sleeper web app. The long number in the URL
-          (<code className="text-emerald-400">
+          (<code className="text-green-600 dark:text-green-400">
             sleeper.com/leagues/&lt;LEAGUE_ID&gt;
           </code>
           ) is your league ID. You can paste the whole URL above too.

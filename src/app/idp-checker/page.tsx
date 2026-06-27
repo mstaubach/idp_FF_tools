@@ -47,58 +47,56 @@ export default function IdpCheckerPage() {
   }, [leagueId]);
 
   return (
-    <div className="bg-gray-50 text-gray-900 rounded-2xl border border-pitch-700">
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Sleeper IDP Availability Checker
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Paste your IDP rankings and check player availability in your Sleeper league.
-        </p>
+    <div className="max-w-5xl mx-auto">
+      <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100 mb-2">
+        Waiver Check
+      </h1>
+      <p className="text-gray-600 dark:text-slate-400 mb-6">
+        Paste your IDP rankings and check player availability in your Sleeper league.
+      </p>
 
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-xs border p-4">
-            <LeagueInput leagueId={leagueId} onChange={setLeagueId} />
-          </div>
+      <div className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
+          <LeagueInput leagueId={leagueId} onChange={setLeagueId} />
+        </div>
 
-          <div className="bg-white rounded-lg shadow-xs border p-4">
-            <PlayerInput onSubmit={handleSubmit} isLoading={isLoading} />
-          </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
+          <PlayerInput onSubmit={handleSubmit} isLoading={isLoading} />
+        </div>
 
-          {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+        {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
-          {data && (
-            <>
-              {data.waiverInfo && (
-                <div className="bg-white rounded-lg shadow-xs border p-4">
-                  <WaiverInfo waiverInfo={data.waiverInfo} />
-                </div>
-              )}
+        {data && (
+          <>
+            {data.waiverInfo && (
+              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
+                <WaiverInfo waiverInfo={data.waiverInfo} />
+              </div>
+            )}
 
-              <div className="bg-white rounded-lg shadow-xs border p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Results ({data.results.length} players)
-                  </h2>
-                  <Filters
-                    positionFilter={positionFilter}
-                    onPositionChange={setPositionFilter}
-                    availableOnly={availableOnly}
-                    onAvailableOnlyChange={setAvailableOnly}
-                  />
-                </div>
-                <ResultsTable
-                  results={data.results}
+            <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
+                  Results ({data.results.length} players)
+                </h2>
+                <Filters
                   positionFilter={positionFilter}
+                  onPositionChange={setPositionFilter}
                   availableOnly={availableOnly}
+                  onAvailableOnlyChange={setAvailableOnly}
                 />
               </div>
+              <ResultsTable
+                results={data.results}
+                positionFilter={positionFilter}
+                availableOnly={availableOnly}
+              />
+            </div>
 
-              <UnmatchedPlayers players={data.unmatchedPlayers} />
-            </>
-          )}
-        </div>
-      </main>
+            <UnmatchedPlayers players={data.unmatchedPlayers} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
