@@ -15,19 +15,19 @@ export default async function TradeTrackerHome({
 }) {
   const { error } = await searchParams;
   return (
-    <main className="mx-auto max-w-6xl space-y-8">
+    <main className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-3">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">
+        <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
           What did your trade actually become?
         </h1>
-        <p className="max-w-2xl text-gray-600 dark:text-slate-300">
+        <p className="text-gray-600 dark:text-slate-300">
           Trade away a first-round pick for Tee Higgins? This tool follows that
           pick to the draft and shows you exactly who got selected with it — so
           you can finally settle who won the trade.
         </p>
       </section>
 
-      <form action={goToLeague} className="max-w-xl space-y-3">
+      <form action={goToLeague} className="space-y-3">
         <label htmlFor="leagueId" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
           Sleeper League ID
         </label>
@@ -55,7 +55,7 @@ export default async function TradeTrackerHome({
         )}
       </form>
 
-      <section className="max-w-2xl rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 dark:border-pitch-700 dark:bg-pitch-800/50 dark:text-slate-300">
+      <section className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 dark:border-pitch-700 dark:bg-pitch-800/50 dark:text-slate-300">
         <h2 className="mb-2 font-semibold text-gray-900 dark:text-slate-100">
           Where do I find my league ID?
         </h2>

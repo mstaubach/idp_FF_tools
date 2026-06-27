@@ -15,17 +15,17 @@ export default async function StandingsHome({
 }) {
   const { error } = await searchParams;
   return (
-    <main className="mx-auto max-w-6xl space-y-8">
+    <main className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-3">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">League Standings</h1>
-        <p className="max-w-2xl text-gray-600 dark:text-slate-300">
+        <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100">League Standings</h1>
+        <p className="text-gray-600 dark:text-slate-300">
           Enter any Sleeper league ID to see its all-time standings — total wins,
           losses, and championships for every manager across the dynasty&apos;s
           history, with a drill-down into any individual season.
         </p>
       </section>
 
-      <form action={goToLeague} className="max-w-xl space-y-3">
+      <form action={goToLeague} className="space-y-3">
         <label
           htmlFor="leagueId"
           className="block text-sm font-medium text-gray-700 dark:text-slate-300"
@@ -56,7 +56,7 @@ export default async function StandingsHome({
         )}
       </form>
 
-      <section className="max-w-2xl rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 dark:border-pitch-700 dark:bg-pitch-800/50 dark:text-slate-300">
+      <section className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 dark:border-pitch-700 dark:bg-pitch-800/50 dark:text-slate-300">
         <h2 className="mb-2 font-semibold text-gray-900 dark:text-slate-100">
           Where do I find my league ID?
         </h2>

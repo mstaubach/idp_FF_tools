@@ -20,7 +20,7 @@ export default async function LeagueStandingsPage({
     <main className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
+          <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
             {leagueName ?? "League Standings"}
           </h1>
           <p className="text-sm text-gray-500 dark:text-slate-400">All-time history · League ID {leagueId}</p>
