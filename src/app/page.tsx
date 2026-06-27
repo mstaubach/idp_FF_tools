@@ -1,6 +1,15 @@
 import Link from "next/link";
 
-const tools = [
+type Tool = {
+  href: string;
+  icon: string;
+  title: string;
+  description: string;
+  cta: string;
+  soon?: boolean;
+};
+
+const tools: Tool[] = [
   {
     href: "/standings",
     icon: "🏆",
