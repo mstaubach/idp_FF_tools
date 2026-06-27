@@ -13,8 +13,8 @@ export default function StandingsView({ history }: { history: LeagueHistory }) {
 
   const buttonClass = (active: boolean) =>
     active
-      ? "rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white"
-      : "rounded-lg border border-pitch-700 bg-pitch-800 px-3 py-1.5 text-sm text-slate-300 hover:border-emerald-500";
+      ? "rounded-lg bg-green-700 px-3 py-1.5 text-sm font-semibold text-white"
+      : "rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:border-green-600 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-300 dark:hover:border-green-600";
 
   return (
     <section className="space-y-4">
