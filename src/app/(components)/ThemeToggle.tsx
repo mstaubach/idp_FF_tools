@@ -1,15 +1,15 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+const subscribe = () => () => {};
 
 export default function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  // Returns false on server, true on client — avoids hydration mismatch without setState-in-effect
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false);
 
-  useEffect(() => setMounted(true), []);
-
-  // Render a placeholder during SSR to avoid layout shift
   if (!mounted) return <div className="h-8 w-8" />;
 
   return (
