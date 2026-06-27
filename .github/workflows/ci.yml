@@ -22,6 +22,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
+        # npm ci would be preferable but @emnapi platform-specific optional packages
+        # differ between macOS (dev) and Linux (CI), making a cross-platform lock file
+        # impossible to generate from macOS. Risk accepted: no deploy step, no secrets.
         run: npm install
 
       - name: Lint
