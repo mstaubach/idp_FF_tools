@@ -40,15 +40,15 @@ export default async function TeamPage({
     <main className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{data.teamName}</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{data.teamName}</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             {data.trades.length} trade{data.trades.length === 1 ? "" : "s"} ·{" "}
             {data.leagueName}
           </p>
         </div>
         <Link
           href={`/trade-tracker/league/${leagueId}`}
-          className="text-sm text-emerald-400 hover:underline"
+          className="text-sm text-green-600 hover:underline dark:text-green-400"
         >
           ← All teams
         </Link>
