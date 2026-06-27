@@ -41,15 +41,17 @@ export default function UploadTab({ onFileContent }: UploadTabProps) {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
       className={`border-2 border-dashed rounded-md p-8 text-center transition-colors ${
-        dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300'
+        dragOver
+          ? 'border-green-600 bg-green-50 dark:bg-green-900/20'
+          : 'border-gray-300 dark:border-pitch-700'
       }`}
     >
       {fileName ? (
-        <p className="text-sm text-gray-700">Loaded: <strong>{fileName}</strong></p>
+        <p className="text-sm text-gray-700 dark:text-slate-300">Loaded: <strong>{fileName}</strong></p>
       ) : (
         <>
-          <p className="text-sm text-gray-500 mb-2">Drag and drop a .csv or .txt file here</p>
-          <label className="inline-block px-4 py-2 bg-blue-600 text-white text-sm rounded-md cursor-pointer hover:bg-blue-700">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mb-2">Drag and drop a .csv or .txt file here</p>
+          <label className="inline-block px-4 py-2 bg-green-700 text-white text-sm rounded-md cursor-pointer hover:bg-green-600">
             Choose File
             <input
               type="file"
@@ -61,7 +63,7 @@ export default function UploadTab({ onFileContent }: UploadTabProps) {
               }}
             />
           </label>
-          <p className="text-xs text-gray-400 mt-2">Max 1MB. CSV or TXT files.</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-2">Max 1MB. CSV or TXT files.</p>
         </>
       )}
     </div>
