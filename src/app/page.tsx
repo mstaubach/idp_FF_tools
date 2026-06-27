@@ -1,6 +1,15 @@
 import Link from "next/link";
 
-const tools = [
+type Tool = {
+  href: string;
+  icon: string;
+  title: string;
+  description: string;
+  cta: string;
+  soon?: boolean;
+};
+
+const tools: Tool[] = [
   {
     href: "/standings",
     icon: "🏆",
@@ -26,13 +35,12 @@ const tools = [
     cta: "Check waivers",
   },
   {
-    href: "/injury-tracker",
-    icon: "🚑",
-    title: "Injury Tracker",
+    href: "/roster-management",
+    icon: "📋",
+    title: "Roster Management",
     description:
-      "Keep tabs on injury news for the players on your rosters — practice status, game designations, and return timelines.",
-    cta: "Coming soon",
-    soon: true,
+      "See your entire dynasty roster as a depth chart — starters, bench, taxi, and IR organized by position. Built for IDP leagues.",
+    cta: "View depth chart",
   },
 ];
 
