@@ -9,7 +9,7 @@ const links = [
   { href: "/standings", label: "Standings" },
   { href: "/trade-tracker", label: "Trade Tracker" },
   { href: "/idp-checker", label: "Waiver Check" },
-  { href: "/injury-tracker", label: "Injury Tracker" },
+  { href: "/roster-management", label: "Roster Management" },
 ];
 
 const NavBar = () => {
