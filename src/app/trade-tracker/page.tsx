@@ -18,7 +18,7 @@ export default async function TradeTrackerHome({
     <main className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-3">
         <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
-          What did your trade actually become?
+          Trade Tracker
         </h1>
         <p className="text-gray-600 dark:text-slate-300">
           Trade away a first-round pick for Tee Higgins? This tool follows that
