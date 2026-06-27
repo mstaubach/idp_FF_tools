@@ -39,9 +39,15 @@ export async function getUsers(leagueId: string): Promise<SleeperUser[]> {
 }
 
 async function _fetchPlayersRaw(): Promise<Record<string, SleeperPlayer>> {
-  const res = await fetch(`${BASE}/players/nfl`);
-  if (!res.ok) throw new SleeperError(`Sleeper ${res.status}: /players/nfl`);
-  return res.json() as Promise<Record<string, SleeperPlayer>>;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${BASE}/players/nfl`, { signal: controller.signal });
+    if (!res.ok) throw new SleeperError(`Sleeper ${res.status}: /players/nfl`);
+    return res.json() as Promise<Record<string, SleeperPlayer>>;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const getPlayers = unstable_cache(

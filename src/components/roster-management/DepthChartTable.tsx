@@ -26,7 +26,7 @@ export default function DepthChartTable({ grid }: { grid: DepthChartGrid }) {
                 key={`${section.label}-${ri}`}
                 className={
                   si > 0 && ri === 0
-                    ? "border-t-2 border-gray-300 dark:border-pitch-600"
+                    ? "border-t-2 border-gray-300 dark:border-pitch-700"
                     : ""
                 }
               >
