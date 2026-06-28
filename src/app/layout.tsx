@@ -21,10 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
-          <NavBar />
-          <div className="mx-auto max-w-[120rem] px-4 py-8">{children}</div>
-          <Footer />
+        <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+          <div className="flex min-h-screen flex-col">
+            <NavBar />
+            <div className="mx-auto w-full max-w-[120rem] flex-1 px-4 py-8">{children}</div>
+            <Footer />
+          </div>
         </ThemeProvider>
       </body>
     </html>
