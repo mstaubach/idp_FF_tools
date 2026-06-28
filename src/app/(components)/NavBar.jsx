@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 
 const links = [
-  { href: "/", label: "Home" },
   { href: "/standings", label: "Standings" },
   { href: "/trade-tracker", label: "Trade Tracker" },
   { href: "/idp-checker", label: "Waiver Check" },
