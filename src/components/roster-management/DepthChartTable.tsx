@@ -6,7 +6,7 @@ export default function DepthChartTable({ grid }: { grid: DepthChartGrid }) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th className="border-b border-gray-200 bg-gray-100 px-4 py-2.5 text-left font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-300">
+            <th className="border-b border-gray-200 bg-gray-100 px-4 py-2.5 text-center font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-300">
               Rank
             </th>
             {grid.positions.map((pos) => (
@@ -30,13 +30,13 @@ export default function DepthChartTable({ grid }: { grid: DepthChartGrid }) {
                     : ""
                 }
               >
-                <td className="border-b border-gray-100 px-4 py-2 font-bold text-gray-700 dark:border-pitch-700 dark:text-slate-300">
+                <td className="border-b border-gray-100 px-4 py-2 text-center font-bold text-gray-700 dark:border-pitch-700 dark:text-slate-300">
                   {section.label}
                 </td>
                 {row.map((cell, ci) => (
                   <td
                     key={ci}
-                    className="border-b border-l border-gray-100 px-4 py-2 text-gray-900 dark:border-pitch-700 dark:text-slate-100"
+                    className="border-b border-l border-gray-100 px-4 py-2 text-center text-gray-900 dark:border-pitch-700 dark:text-slate-100"
                   >
                     {cell ?? ""}
                   </td>
