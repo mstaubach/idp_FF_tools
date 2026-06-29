@@ -82,6 +82,13 @@ describe("buildTaxiCandidates", () => {
     );
   });
 
+  it("excludes inactive players", () => {
+    const players = {
+      "1": makePlayer({ player_id: "1", active: false }),
+    };
+    expect(buildTaxiCandidates([], players, BASE_POSITIONS, 1)).toEqual([]);
+  });
+
   it("ignores Sleeper sentinel '0' in roster arrays", () => {
     const roster: SleeperRoster = {
       roster_id: 1,
