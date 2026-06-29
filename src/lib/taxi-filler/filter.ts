@@ -51,6 +51,8 @@ export function buildTaxiCandidates(
 
   return Object.values(players)
     .filter((p) => {
+      // getPlayers() already drops inactive players during slimming; this guard keeps
+      // buildTaxiCandidates correct when called directly in tests with unslimmed data.
       if (!p.active) return false;
       if (rostered.has(p.player_id)) return false;
       if ((p.years_exp ?? Infinity) >= taxiYears) return false;
@@ -61,6 +63,7 @@ export function buildTaxiCandidates(
     .map((p) => ({
       playerId: p.player_id,
       name: [p.first_name, p.last_name].filter(Boolean).join(" ") || "Unknown",
+      // p.position is non-null: filter above requires normalizePosition(p.position) to be in leaguePositionSet
       position: normalizePosition(p.position!),
       team: p.team ?? null,
       age: p.age ?? null,

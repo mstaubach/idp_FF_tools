@@ -81,7 +81,7 @@ export default function TaxiFillerTable({
                   {c.age ?? "—"}
                 </td>
                 <td className="px-4 py-2 text-center text-gray-700 dark:text-slate-300">
-                  {c.yearsExp === 0 ? "Rookie" : `${c.yearsExp} yr`}
+                  {c.yearsExp === 0 ? "Rookie" : `${c.yearsExp} yr${c.yearsExp === 1 ? "" : "s"}`}
                 </td>
               </tr>
             ))}
