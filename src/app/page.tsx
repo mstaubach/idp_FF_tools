@@ -42,6 +42,14 @@ const tools: Tool[] = [
       "See your entire dynasty roster as a depth chart — starters, bench, taxi, and IR organized by position. Built for IDP leagues.",
     cta: "View depth chart",
   },
+  {
+    href: "/taxi-filler",
+    icon: "🚕",
+    title: "Taxi Filler",
+    description:
+      "Find rookies and young players on the waiver wire who qualify for your taxi squad. Ranked by Sleeper's player rating so you can spot the best stashes quickly.",
+    cta: "Find taxi targets",
+  },
 ];
 
 export default function Home() {
