@@ -28,8 +28,15 @@ const dropdowns = [
 const NavBar = () => {
   const pathname = usePathname();
   const [openState, setOpenState] = useState({ index: null, path: null });
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [profileDropdownState, setProfileDropdownState] = useState({ open: false, path: null });
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  const profileDropdownOpen = profileDropdownState.open && profileDropdownState.path === pathname;
+  const closeProfileDropdown = () => setProfileDropdownState({ open: false, path: null });
+  const toggleProfileDropdown = () =>
+    setProfileDropdownState(profileDropdownOpen
+      ? { open: false, path: null }
+      : { open: true, path: pathname });
   const navRef = useRef(null);
 
   const { profile, activeLeagueId, setActiveLeagueId, clearProfile } =
@@ -51,17 +58,12 @@ const NavBar = () => {
     const handleClickOutside = (e) => {
       if (navRef.current && !navRef.current.contains(e.target)) {
         setOpenState({ index: null, path: null });
-        setProfileDropdownOpen(false);
+        closeProfileDropdown();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Close profile dropdown on navigation
-  useEffect(() => {
-    setProfileDropdownOpen(false);
-  }, [pathname]);
 
   return (
     <>
@@ -139,7 +141,7 @@ const NavBar = () => {
             ) : (
               <div className="relative">
                 <button
-                  onClick={() => setProfileDropdownOpen((o) => !o)}
+                  onClick={toggleProfileDropdown}
                   className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-pitch-800 dark:hover:text-white"
                 >
                   @{profile.sleeperUsername}
@@ -170,7 +172,7 @@ const NavBar = () => {
                           key={league.leagueId}
                           onClick={() => {
                             setActiveLeagueId(league.leagueId);
-                            setProfileDropdownOpen(false);
+                            closeProfileDropdown();
                           }}
                           className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium transition ${
                             isActiveLg
@@ -188,7 +190,7 @@ const NavBar = () => {
                     <hr className="my-1 border-gray-100 dark:border-pitch-700" />
                     <button
                       onClick={() => {
-                        setProfileDropdownOpen(false);
+                        closeProfileDropdown();
                         setProfileModalOpen(true);
                       }}
                       className="block w-full px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-200 dark:hover:bg-pitch-700 dark:hover:text-white"
@@ -198,7 +200,7 @@ const NavBar = () => {
                     <button
                       onClick={() => {
                         clearProfile();
-                        setProfileDropdownOpen(false);
+                        closeProfileDropdown();
                       }}
                       className="block w-full px-4 py-2 text-left text-sm font-medium text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                     >

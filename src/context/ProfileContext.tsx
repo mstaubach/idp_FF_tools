@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
+  startTransition,
   ReactNode,
 } from 'react';
 import { Profile } from '@/lib/profile/types';
@@ -31,8 +32,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       if (raw) {
         const parsed: Profile = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.leagues) && parsed.primaryLeagueId) {
-          setProfileState(parsed);
-          setActiveLeagueId(parsed.primaryLeagueId);
+          startTransition(() => {
+            setProfileState(parsed);
+            setActiveLeagueId(parsed.primaryLeagueId);
+          });
         }
       }
     } catch {
