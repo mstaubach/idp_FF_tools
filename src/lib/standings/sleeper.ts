@@ -1,4 +1,5 @@
 import { buildLeagueHistory } from "./history";
+import { isValidSleeperId } from "@/lib/sleeper-id";
 import type {
   BracketMatch,
   League,
@@ -30,6 +31,7 @@ async function getJson<T>(
 }
 
 async function getLeague(leagueId: string): Promise<League | null> {
+  if (!isValidSleeperId(leagueId)) return null;
   return getJson<League>(`/league/${leagueId}`, TTL_LONG);
 }
 
@@ -52,13 +54,16 @@ async function getNewestLeague(start: League): Promise<League> {
   for (let guard = 0; guard < 20; guard++) {
     const nextSeason = String(Number(head.season) + 1);
     const members = await getUsers(head.league_id);
-    let successor: League | null = null;
-    for (const member of members) {
-      const leagues = await getUserLeagues(member.user_id, nextSeason);
-      successor =
-        leagues.find((l) => l.previous_league_id === head.league_id) ?? null;
-      if (successor) break;
-    }
+    // Look up every member's next-season leagues in parallel rather than one at
+    // a time. Members share the same successor league, but checking all of them
+    // tolerates anyone who left the league between seasons.
+    const memberLeagues = await Promise.all(
+      members.map((member) => getUserLeagues(member.user_id, nextSeason)),
+    );
+    const successor =
+      memberLeagues
+        .flat()
+        .find((l) => l.previous_league_id === head.league_id) ?? null;
     if (!successor) break;
     head = successor;
   }

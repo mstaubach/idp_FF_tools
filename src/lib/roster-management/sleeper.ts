@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { isValidSleeperId } from "@/lib/sleeper-id";
 import type {
   SleeperLeague,
   SleeperPlayer,
@@ -23,16 +24,19 @@ async function getJson<T>(
 export async function getLeague(
   leagueId: string,
 ): Promise<SleeperLeague | null> {
+  if (!isValidSleeperId(leagueId)) return null;
   return getJson<SleeperLeague>(`/league/${leagueId}`, 300);
 }
 
 export async function getRosters(leagueId: string): Promise<SleeperRoster[]> {
+  if (!isValidSleeperId(leagueId)) return [];
   return (
     (await getJson<SleeperRoster[]>(`/league/${leagueId}/rosters`, 300)) ?? []
   );
 }
 
 export async function getUsers(leagueId: string): Promise<SleeperUser[]> {
+  if (!isValidSleeperId(leagueId)) return [];
   return (
     (await getJson<SleeperUser[]>(`/league/${leagueId}/users`, 300)) ?? []
   );

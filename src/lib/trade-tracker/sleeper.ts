@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+import { isValidSleeperId } from "@/lib/sleeper-id";
 import type {
   Draft,
   DraftPickResult,
@@ -31,6 +33,7 @@ async function getJson<T>(
 }
 
 export async function getLeague(leagueId: string): Promise<League | null> {
+  if (!isValidSleeperId(leagueId)) return null;
   return getJson<League>(`/league/${leagueId}`, 60 * 60);
 }
 
@@ -55,13 +58,16 @@ async function getNewestLeague(start: League): Promise<League> {
   for (let guard = 0; guard < 20; guard++) {
     const nextSeason = String(Number(head.season) + 1);
     const members = await getUsers(head.league_id);
-    let successor: League | null = null;
-    for (const member of members) {
-      const leagues = await getUserLeagues(member.user_id, nextSeason);
-      successor =
-        leagues.find((l) => l.previous_league_id === head.league_id) ?? null;
-      if (successor) break;
-    }
+    // Look up every member's next-season leagues in parallel rather than one at
+    // a time. Members share the same successor league, but checking all of them
+    // tolerates anyone who left the league between seasons.
+    const memberLeagues = await Promise.all(
+      members.map((member) => getUserLeagues(member.user_id, nextSeason)),
+    );
+    const successor =
+      memberLeagues
+        .flat()
+        .find((l) => l.previous_league_id === head.league_id) ?? null;
     if (!successor) break;
     head = successor;
   }
@@ -132,13 +138,42 @@ export async function getDraftPicks(
   );
 }
 
-// The full NFL player map is large (~5MB) but rarely changes; cache it hard.
-// Used to resolve player_ids on the non-pick side of trades into names.
-export async function getPlayers(): Promise<Record<string, SleeperPlayer>> {
-  return (
-    (await getJson<Record<string, SleeperPlayer>>(
-      `/players/nfl`,
-      60 * 60 * 24,
-    )) ?? {}
-  );
+// The full /players/nfl response is ~16MB — over Next.js's 2MB data-cache
+// limit, so a raw cached fetch would silently never cache and re-download it
+// on every request. Slim it to only the fields resolve.ts needs, then wrap in
+// unstable_cache so it fits and is shared across requests.
+async function _fetchPlayersRaw(): Promise<Record<string, SleeperPlayer>> {
+  const raw = await getJson<
+    Record<
+      string,
+      {
+        first_name?: string | null;
+        last_name?: string | null;
+        full_name?: string | null;
+        position?: string | null;
+        team?: string | null;
+      }
+    >
+  >(`/players/nfl`, 60 * 60 * 24);
+  if (!raw) return {};
+
+  const slim: Record<string, SleeperPlayer> = {};
+  for (const [id, p] of Object.entries(raw)) {
+    slim[id] = {
+      player_id: id,
+      first_name: p.first_name ?? undefined,
+      last_name: p.last_name ?? undefined,
+      full_name: p.full_name ?? undefined,
+      position: p.position ?? undefined,
+      team: p.team ?? undefined,
+    };
+  }
+  return slim;
 }
+
+// Used to resolve player_ids on the non-pick side of trades into names.
+export const getPlayers = unstable_cache(
+  _fetchPlayersRaw,
+  ["trade-tracker-players"],
+  { revalidate: 60 * 60 * 24 },
+);

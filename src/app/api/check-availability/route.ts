@@ -3,6 +3,7 @@ import { fetchPlayers, fetchRosters, fetchUsers, fetchLeague } from '@/lib/idp-c
 import { matchPlayers } from '@/lib/idp-checker/matcher';
 import { buildAvailabilityResults } from '@/lib/idp-checker/availability';
 import { CheckAvailabilityRequest, CheckAvailabilityResponse } from '@/lib/idp-checker/types';
+import { isValidSleeperId } from '@/lib/sleeper-id';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,13 @@ export async function POST(request: NextRequest) {
     if (!body.leagueId || !body.players?.length) {
       return NextResponse.json(
         { error: 'leagueId and players are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidSleeperId(body.leagueId)) {
+      return NextResponse.json(
+        { error: 'Invalid league ID. Sleeper league IDs are numeric.' },
         { status: 400 }
       );
     }
