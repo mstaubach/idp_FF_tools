@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { isValidSleeperId } from "@/lib/sleeper-id";
 import type {
   Draft,
   DraftPickResult,
@@ -32,6 +33,7 @@ async function getJson<T>(
 }
 
 export async function getLeague(leagueId: string): Promise<League | null> {
+  if (!isValidSleeperId(leagueId)) return null;
   return getJson<League>(`/league/${leagueId}`, 60 * 60);
 }
 

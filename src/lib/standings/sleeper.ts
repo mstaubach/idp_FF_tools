@@ -1,4 +1,5 @@
 import { buildLeagueHistory } from "./history";
+import { isValidSleeperId } from "@/lib/sleeper-id";
 import type {
   BracketMatch,
   League,
@@ -30,6 +31,7 @@ async function getJson<T>(
 }
 
 async function getLeague(leagueId: string): Promise<League | null> {
+  if (!isValidSleeperId(leagueId)) return null;
   return getJson<League>(`/league/${leagueId}`, TTL_LONG);
 }
 

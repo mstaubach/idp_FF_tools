@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { isValidSleeperId } from "@/lib/sleeper-id";
 import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "./types";
 
 const BASE = "https://api.sleeper.app/v1";
@@ -13,10 +14,12 @@ async function getJson<T>(path: string, revalidate: number): Promise<T | null> {
 }
 
 export async function getLeague(leagueId: string): Promise<SleeperLeague | null> {
+  if (!isValidSleeperId(leagueId)) return null;
   return getJson<SleeperLeague>(`/league/${leagueId}`, 300);
 }
 
 export async function getRosters(leagueId: string): Promise<SleeperRoster[]> {
+  if (!isValidSleeperId(leagueId)) return [];
   return (await getJson<SleeperRoster[]>(`/league/${leagueId}/rosters`, 300)) ?? [];
 }
 
