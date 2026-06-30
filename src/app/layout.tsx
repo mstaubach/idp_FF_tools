@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import NavBar from "./(components)/NavBar";
 import Footer from "./(components)/Footer";
+import { ProfileProvider } from "@/context/ProfileContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,11 +23,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen`}>
         <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
-          <div className="flex min-h-screen flex-col">
-            <NavBar />
-            <div className="mx-auto w-full max-w-[120rem] flex-1 px-4 py-8">{children}</div>
-            <Footer />
-          </div>
+          <ProfileProvider>
+            <div className="flex min-h-screen flex-col">
+              <NavBar />
+              <div className="mx-auto w-full max-w-[120rem] flex-1 px-4 py-8">
+                {children}
+              </div>
+              <Footer />
+            </div>
+          </ProfileProvider>
         </ThemeProvider>
       </body>
     </html>
