@@ -6,7 +6,12 @@ export type SleeperUser = {
   display_name: string;
 };
 
-export const CURRENT_SEASON = '2025';
+export function currentNflSeason(): string {
+  const now = new Date();
+  // NFL season year = current calendar year if month >= August (season starts in September),
+  // otherwise previous year (Jan–Aug are still in the prior season)
+  return String(now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1);
+}
 
 export async function lookupSleeperUser(username: string): Promise<SleeperUser> {
   const res = await fetch(

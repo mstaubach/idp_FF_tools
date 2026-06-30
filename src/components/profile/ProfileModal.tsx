@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProfile } from '@/context/ProfileContext';
-import { lookupSleeperUser, fetchUserLeagues, CURRENT_SEASON } from '@/lib/profile/sleeper';
+import { lookupSleeperUser, fetchUserLeagues, currentNflSeason } from '@/lib/profile/sleeper';
 import { SavedLeague, Profile } from '@/lib/profile/types';
 
 type Step = 'username' | 'leagues';
@@ -27,13 +27,21 @@ export default function ProfileModal({ onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
       const user = await lookupSleeperUser(username.trim());
-      const fetched = await fetchUserLeagues(user.user_id, CURRENT_SEASON);
+      const fetched = await fetchUserLeagues(user.user_id, currentNflSeason());
       setUserId(user.user_id);
       setLeagues(fetched);
       setSelected(new Set(fetched.map((l) => l.leagueId)));
@@ -83,10 +91,10 @@ export default function ProfileModal({ onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="profile-modal-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-pitch-700 dark:bg-pitch-900">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">
+          <h2 id="profile-modal-title" className="text-lg font-bold text-gray-900 dark:text-slate-100">
             {step === 'username' ? 'Set up your profile' : 'Your leagues'}
           </h2>
           <button
@@ -137,7 +145,7 @@ export default function ProfileModal({ onClose }: Props) {
             </p>
             {leagues.length === 0 && (
               <p className="text-sm text-gray-400 dark:text-slate-500">
-                No leagues found for the {CURRENT_SEASON} season.
+                No leagues found for the {currentNflSeason()} season.
               </p>
             )}
             <ul className="space-y-2">

@@ -30,8 +30,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed: Profile = JSON.parse(raw);
-        setProfileState(parsed);
-        setActiveLeagueId(parsed.primaryLeagueId);
+        if (parsed && Array.isArray(parsed.leagues) && parsed.primaryLeagueId) {
+          setProfileState(parsed);
+          setActiveLeagueId(parsed.primaryLeagueId);
+        }
       }
     } catch {
       // ignore malformed storage
