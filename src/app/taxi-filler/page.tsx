@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import YourLeagues from "@/components/profile/YourLeagues";
+import FirstVisitPrompt from "@/components/profile/FirstVisitPrompt";
 
 export const metadata = { title: "Taxi Filler — IDP Dynasty HQ" };
 
@@ -23,11 +25,14 @@ export default async function TaxiFillerHome({
           Taxi Filler
         </h1>
         <p className="text-gray-600 dark:text-slate-300">
-          Find rookies and young players on the waiver wire who are eligible
-          for your league&apos;s taxi squad — ranked by Sleeper&apos;s player
-          rating so you can spot the best stashes fast.
+          Find rookies and young players on the waiver wire who are eligible for
+          your league&apos;s taxi squad — ranked by Sleeper&apos;s player rating
+          so you can spot the best stashes fast.
         </p>
+        <FirstVisitPrompt />
       </section>
+
+      <YourLeagues toolPath="/taxi-filler" />
 
       <form action={goToLeague} className="space-y-3">
         <label
@@ -65,8 +70,7 @@ export default async function TaxiFillerHome({
           Where do I find my league ID?
         </h2>
         <p>
-          Open your league in the Sleeper web app. The long number in the URL
-          (
+          Open your league in the Sleeper web app. The long number in the URL (
           <code className="text-green-600 dark:text-green-400">
             sleeper.com/leagues/&lt;LEAGUE_ID&gt;
           </code>

@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import YourLeagues from "@/components/profile/YourLeagues";
+import FirstVisitPrompt from "@/components/profile/FirstVisitPrompt";
 
 async function goToLeague(formData: FormData) {
   "use server";
@@ -17,13 +19,18 @@ export default async function StandingsHome({
   return (
     <main className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-3">
-        <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100">League Standings</h1>
+        <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
+          League Standings
+        </h1>
         <p className="text-gray-600 dark:text-slate-300">
           Enter any Sleeper league ID to see its all-time standings — total wins,
           losses, and championships for every manager across the dynasty&apos;s
           history, with a drill-down into any individual season.
         </p>
+        <FirstVisitPrompt />
       </section>
+
+      <YourLeagues toolPath="/standings" />
 
       <form action={goToLeague} className="space-y-3">
         <label
@@ -62,7 +69,8 @@ export default async function StandingsHome({
         </h2>
         <p>
           Open your league in the Sleeper web app. The long number in the URL
-          (<code className="text-green-600 dark:text-green-400">
+          (
+          <code className="text-green-600 dark:text-green-400">
             sleeper.com/leagues/&lt;LEAGUE_ID&gt;
           </code>
           ) is your league ID. You can paste the whole URL above too.
