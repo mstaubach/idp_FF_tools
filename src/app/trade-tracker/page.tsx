@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import YourLeagues from "@/components/profile/YourLeagues";
+import FirstVisitPrompt from "@/components/profile/FirstVisitPrompt";
 
 async function goToLeague(formData: FormData) {
   "use server";
@@ -25,10 +27,16 @@ export default async function TradeTrackerHome({
           pick to the draft and shows you exactly who got selected with it — so
           you can finally settle who won the trade.
         </p>
+        <FirstVisitPrompt />
       </section>
 
+      <YourLeagues toolPath="/trade-tracker/league" />
+
       <form action={goToLeague} className="space-y-3">
-        <label htmlFor="leagueId" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+        <label
+          htmlFor="leagueId"
+          className="block text-sm font-medium text-gray-700 dark:text-slate-300"
+        >
           Sleeper League ID
         </label>
         <div className="flex gap-2">
@@ -61,8 +69,11 @@ export default async function TradeTrackerHome({
         </h2>
         <p>
           Open your league in the Sleeper web app. The long number in the URL
-          (<code className="text-green-600 dark:text-green-400">sleeper.com/leagues/&lt;LEAGUE_ID&gt;</code>)
-          is your league ID. You can paste the whole URL above too.
+          (
+          <code className="text-green-600 dark:text-green-400">
+            sleeper.com/leagues/&lt;LEAGUE_ID&gt;
+          </code>
+          ) is your league ID. You can paste the whole URL above too.
         </p>
       </section>
     </main>

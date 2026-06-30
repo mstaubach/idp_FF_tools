@@ -8,6 +8,8 @@ import Filters from '@/components/idp-checker/Filters';
 import WaiverInfo from '@/components/idp-checker/WaiverInfo';
 import UnmatchedPlayers from '@/components/idp-checker/UnmatchedPlayers';
 import ErrorBanner from '@/components/idp-checker/ErrorBanner';
+import YourLeagues from '@/components/profile/YourLeagues';
+import FirstVisitPrompt from '@/components/profile/FirstVisitPrompt';
 import { ParsedPlayer, CheckAvailabilityResponse } from '@/lib/idp-checker/types';
 
 const DEFAULT_LEAGUE_ID = '';
@@ -51,11 +53,17 @@ export default function IdpCheckerPage() {
       <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-slate-100 mb-2">
         Waiver Check
       </h1>
-      <p className="text-gray-600 dark:text-slate-400 mb-6">
+      <p className="text-gray-600 dark:text-slate-400 mb-2">
         Paste your IDP rankings and check player availability in your Sleeper league.
       </p>
+      <FirstVisitPrompt />
 
-      <div className="space-y-6">
+      <div className="space-y-6 mt-6">
+        <YourLeagues
+          toolPath="/idp-checker"
+          onLeagueSelect={(id) => setLeagueId(id)}
+        />
+
         <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
           <LeagueInput leagueId={leagueId} onChange={setLeagueId} />
         </div>

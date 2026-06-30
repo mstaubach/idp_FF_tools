@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import YourLeagues from "@/components/profile/YourLeagues";
+import FirstVisitPrompt from "@/components/profile/FirstVisitPrompt";
 
 export const metadata = { title: "Roster Management — IDP Dynasty HQ" };
 
@@ -27,7 +29,10 @@ export default async function RosterManagementHome({
           bench, taxi, and IR slotted by position. Enter your Sleeper league ID
           to get started.
         </p>
+        <FirstVisitPrompt />
       </section>
+
+      <YourLeagues toolPath="/roster-management" />
 
       <form action={goToLeague} className="space-y-3">
         <label
