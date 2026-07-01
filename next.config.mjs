@@ -6,12 +6,20 @@
 // (next-themes' pre-hydration theme script and Next's bootstrap run inline
 // without nonce wiring). img-src allows data:/blob: for the html-to-image PNG
 // export in the trade canvas.
+const isDev = process.env.NODE_ENV !== "production";
+
+// React uses eval() in development mode for debugging (never in production), so
+// 'unsafe-eval' is allowed for scripts in dev only and kept out of the prod CSP.
+const scriptSrc = isDev
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  : "script-src 'self' 'unsafe-inline'";
+
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      scriptSrc,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self'",
