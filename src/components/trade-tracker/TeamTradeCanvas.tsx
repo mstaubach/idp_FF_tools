@@ -6,7 +6,22 @@ import { toBlob } from "html-to-image";
 import type { TeamView } from "@/lib/trade-tracker/team-view";
 import TeamTradeCard from "./TeamTradeCard";
 import { computeArrowPath, type GutterRoute } from "./arrowPath";
+import {
+  CHAIN_COLORS,
+  colorForAssetKey,
+  labelForAssetKey,
+  orderedAssetKeys,
+} from "./arrowStyle";
+import { chainKeySets } from "./chainKeys";
 import { layoutChainComponents, type CellPosition } from "./tradeLayout";
+
+interface Arrow {
+  d: string;
+  color: string;
+  label: string;
+  mid: { x: number; y: number };
+  component: number;
+}
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -19,11 +34,21 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function TeamTradeCanvas({ view }: { view: TeamView }) {
+export default function TeamTradeCanvas({
+  view,
+  leagueId,
+}: {
+  view: TeamView;
+  leagueId?: string;
+}) {
   const trackRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [paths, setPaths] = useState<string[]>([]);
-  const [copyState, setCopyState] = useState<"idle" | "working" | "copied" | "downloaded" | "error">("idle");
+  const [arrows, setArrows] = useState<Arrow[]>([]);
+  const [hoveredComponent, setHoveredComponent] = useState<number | null>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const [copyState, setCopyState] = useState<
+    "idle" | "working" | "copied" | "downloaded" | "error"
+  >("idle");
   const { resolvedTheme } = useTheme();
 
   async function handleCopy() {
@@ -72,17 +97,15 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     error: "Couldn't capture — try again",
   }[copyState];
 
-  const { sourceKeysByTrade, targetKeysByTrade } = useMemo(() => {
-    const source = new Map<string, Set<string>>();
-    const target = new Map<string, Set<string>>();
-    for (const link of view.chainLinks) {
-      if (!source.has(link.fromTradeId)) source.set(link.fromTradeId, new Set());
-      source.get(link.fromTradeId)!.add(link.assetKey);
-      if (!target.has(link.toTradeId)) target.set(link.toTradeId, new Set());
-      target.get(link.toTradeId)!.add(link.assetKey);
-    }
-    return { sourceKeysByTrade: source, targetKeysByTrade: target };
-  }, [view.chainLinks]);
+  const { sourceKeysByTrade, targetKeysByTrade } = useMemo(
+    () => chainKeySets(view.chainLinks),
+    [view.chainLinks],
+  );
+
+  const orderedKeys = useMemo(
+    () => orderedAssetKeys(view.chainLinks),
+    [view.chainLinks],
+  );
 
   const { chainTrades, standaloneTrades } = useMemo(() => {
     const linked = new Set<string>();
@@ -96,29 +119,41 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
     };
   }, [view.trades, view.chainLinks]);
 
-  const { components, positionByTrade } = useMemo(() => {
+  const { components, positionByTrade, componentByTrade } = useMemo(() => {
     const components = layoutChainComponents(chainTrades, view.chainLinks);
     const positionByTrade = new Map<string, CellPosition>();
-    for (const c of components) {
-      for (const [id, pos] of c.positions) positionByTrade.set(id, pos);
-    }
-    return { components, positionByTrade };
+    const componentByTrade = new Map<string, number>();
+    components.forEach((c, ci) => {
+      for (const [id, pos] of c.positions) {
+        positionByTrade.set(id, pos);
+        componentByTrade.set(id, ci);
+      }
+    });
+    return { components, positionByTrade, componentByTrade };
   }, [chainTrades, view.chainLinks]);
-
-  const standaloneColumns = 3;
 
   useLayoutEffect(() => {
     const track = trackRef.current;
     if (!track) return;
 
+    const updateEdges = () =>
+      setEdges({
+        left: track.scrollLeft > 8,
+        right: track.scrollLeft + track.clientWidth < track.scrollWidth - 8,
+      });
+
     const recompute = () => {
       const origin = track.getBoundingClientRect();
       const toContentX = (x: number) => x - origin.left + track.scrollLeft;
       const toContentY = (y: number) => y - origin.top + track.scrollTop;
-      const next: string[] = [];
+      const next: Arrow[] = [];
       for (const link of view.chainLinks) {
-        const src = track.querySelector(`[data-anchor="src:${link.fromTradeId}:${link.assetKey}"]`);
-        const dst = track.querySelector(`[data-anchor="dst:${link.toTradeId}:${link.assetKey}"]`);
+        const src = track.querySelector(
+          `[data-anchor="src:${link.fromTradeId}:${link.assetKey}"]`,
+        );
+        const dst = track.querySelector(
+          `[data-anchor="dst:${link.toTradeId}:${link.assetKey}"]`,
+        );
         if (!src || !dst) continue;
         const s = src.getBoundingClientRect();
         const d = dst.getBoundingClientRect();
@@ -144,152 +179,230 @@ export default function TeamTradeCanvas({ view }: { view: TeamView }) {
             const sc = srcCard.getBoundingClientRect();
             const tc = tgtCard.getBoundingClientRect();
             route = {
-              exitX: toContentX(sc.right) + 24,
-              enterX: toContentX(tc.left) - 24,
-              gutterY: toContentY(tc.top) - 16,
+              exitX: toContentX(sc.right) + 12,
+              enterX: toContentX(tc.left) - 12,
+              gutterY: toContentY(tc.top) - 12,
             };
           }
         }
 
-        next.push(computeArrowPath(from, to, route));
+        next.push({
+          d: computeArrowPath(from, to, route),
+          color: colorForAssetKey(link.assetKey, orderedKeys),
+          label: labelForAssetKey(link.assetKey),
+          mid: route
+            ? { x: (route.exitX + route.enterX) / 2, y: route.gutterY }
+            : { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 },
+          component: componentByTrade.get(link.fromTradeId) ?? -1,
+        });
       }
-      setPaths(next);
+      setArrows(next);
+      updateEdges();
     };
 
     recompute();
     const ro = new ResizeObserver(recompute);
     ro.observe(track);
+    track.addEventListener("scroll", updateEdges, { passive: true });
     window.addEventListener("resize", recompute);
     return () => {
       ro.disconnect();
+      track.removeEventListener("scroll", updateEdges);
       window.removeEventListener("resize", recompute);
     };
-  }, [view, positionByTrade]);
+  }, [view, positionByTrade, componentByTrade, orderedKeys]);
+
+  // Drag-to-pan the chain track (ignore drags starting on links/buttons).
+  function onPointerDown(e: React.PointerEvent) {
+    const track = trackRef.current;
+    if (!track || e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("a,button")) return;
+    const startX = e.clientX;
+    const startLeft = track.scrollLeft;
+    const onMove = (ev: PointerEvent) => {
+      track.scrollLeft = startLeft - (ev.clientX - startX);
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  const dimmed = (ci: number) =>
+    hoveredComponent != null && hoveredComponent !== ci;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleCopy}
-          disabled={copyState === "working"}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-green-600/50 disabled:opacity-60 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-200 dark:hover:border-green-600/50"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+    <div className="space-y-4">
+      {components.length > 0 && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCopy}
+            disabled={copyState === "working"}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-green-600/50 disabled:opacity-60 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-200 dark:hover:border-green-600/50"
           >
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
-          {copyLabel}
-        </button>
-        <span className="text-xs text-gray-400 dark:text-slate-500">
-          Copies the whole flow as an image to paste anywhere.
-        </span>
-      </div>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            {copyLabel}
+          </button>
+          <span className="text-xs text-gray-400 dark:text-slate-500">
+            Copies the pick-chain flow as an image to paste anywhere.
+          </span>
+        </div>
+      )}
 
-      <div ref={trackRef} className="relative overflow-x-auto pb-4">
-        <div ref={contentRef} className="relative w-max space-y-8">
-          <svg
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            style={{ overflow: "visible" }}
+      {components.length > 0 && (
+        <div className="relative">
+          <div
+            ref={trackRef}
+            onPointerDown={onPointerDown}
+            className="relative cursor-grab overflow-x-auto pb-4 active:cursor-grabbing"
           >
-            <defs>
-              <marker
-                id="trade-arrowhead"
-                markerWidth="8"
-                markerHeight="8"
-                refX="6"
-                refY="3"
-                orient="auto"
+            <div ref={contentRef} className="relative w-max space-y-8">
+              <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                style={{ overflow: "visible" }}
               >
-                <path d="M0,0 L6,3 L0,6 Z" fill="#38bdf8" />
-              </marker>
-            </defs>
-            {paths.map((d, i) => (
-              <path
-                key={i}
-                d={d}
-                fill="none"
-                stroke="#38bdf8"
-                strokeWidth={2}
-                markerEnd="url(#trade-arrowhead)"
-              />
-            ))}
-          </svg>
-
-          {components.length > 0 && (
-            <section className="space-y-6">
-              {standaloneTrades.length > 0 && (
-                <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
-                  Pick chains
-                </h3>
-              )}
-              {components.map((component, ci) => (
-                <div
-                  key={ci}
-                  className="grid w-max items-start gap-x-16 gap-y-8"
-                  style={{
-                    gridTemplateColumns: `repeat(${component.columnCount}, 28rem)`,
-                    gridAutoRows: "min-content",
-                  }}
-                >
-                  {component.trades.map((trade) => {
-                    const cell = component.positions.get(trade.tradeId);
-                    return (
-                      <div
-                        key={trade.tradeId}
-                        data-trade={trade.tradeId}
-                        style={{
-                          gridColumn: (cell?.column ?? 0) + 1,
-                          gridRow: (cell?.row ?? 0) + 1,
-                        }}
-                      >
-                        <TeamTradeCard
-                          trade={trade}
-                          sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
-                          targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </section>
-          )}
-
-          {standaloneTrades.length > 0 && (
-            <section className="space-y-2">
-              {chainTrades.length > 0 && (
-                <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
-                  Other trades
-                </h3>
-              )}
-              <div
-                className="grid items-start gap-4"
-                style={{ gridTemplateColumns: `repeat(${standaloneColumns}, 28rem)` }}
-              >
-                {standaloneTrades.map((trade) => (
-                  <TeamTradeCard
-                    key={trade.tradeId}
-                    trade={trade}
-                    sourceKeys={new Set()}
-                    targetKeys={new Set()}
+                <defs>
+                  {CHAIN_COLORS.map((color, i) => (
+                    <marker
+                      key={color}
+                      id={`trade-arrowhead-${i}`}
+                      markerWidth="8"
+                      markerHeight="8"
+                      refX="6"
+                      refY="3"
+                      orient="auto"
+                    >
+                      <path d="M0,0 L6,3 L0,6 Z" fill={color} />
+                    </marker>
+                  ))}
+                </defs>
+                {arrows.map((a, i) => (
+                  <path
+                    key={i}
+                    d={a.d}
+                    fill="none"
+                    stroke={a.color}
+                    strokeWidth={hoveredComponent === a.component ? 2.5 : 2}
+                    opacity={dimmed(a.component) ? 0.2 : 1}
+                    className="transition-opacity"
+                    markerEnd={`url(#trade-arrowhead-${CHAIN_COLORS.indexOf(a.color)})`}
                   />
                 ))}
-              </div>
-            </section>
+              </svg>
+
+              {arrows.map((a, i) => (
+                <span
+                  key={i}
+                  className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border bg-gray-50 px-1.5 text-[10px] font-semibold leading-4 transition-opacity dark:bg-pitch-900 ${
+                    dimmed(a.component) ? "opacity-20" : ""
+                  }`}
+                  style={{
+                    left: a.mid.x,
+                    top: a.mid.y,
+                    color: a.color,
+                    borderColor: `${a.color}55`,
+                    margin: 0,
+                  }}
+                >
+                  {a.label}
+                </span>
+              ))}
+
+              <section className="space-y-6">
+                {standaloneTrades.length > 0 && (
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                    Pick chains
+                  </h3>
+                )}
+                {components.map((component, ci) => (
+                  <div
+                    key={ci}
+                    className="grid w-max items-start gap-x-8 gap-y-6"
+                    style={{
+                      gridTemplateColumns: `repeat(${component.columnCount}, 24rem)`,
+                      gridAutoRows: "min-content",
+                    }}
+                  >
+                    {component.trades.map((trade) => {
+                      const cell = component.positions.get(trade.tradeId);
+                      return (
+                        <div
+                          key={trade.tradeId}
+                          data-trade={trade.tradeId}
+                          onMouseEnter={() => setHoveredComponent(ci)}
+                          onMouseLeave={() => setHoveredComponent(null)}
+                          className={`transition-opacity ${
+                            dimmed(ci) ? "opacity-40" : ""
+                          }`}
+                          style={{
+                            gridColumn: (cell?.column ?? 0) + 1,
+                            gridRow: (cell?.row ?? 0) + 1,
+                          }}
+                        >
+                          <TeamTradeCard
+                            trade={trade}
+                            leagueId={leagueId}
+                            sourceKeys={sourceKeysByTrade.get(trade.tradeId) ?? new Set()}
+                            targetKeys={targetKeysByTrade.get(trade.tradeId) ?? new Set()}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </section>
+            </div>
+          </div>
+
+          {edges.right && (
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex w-20 items-center justify-end bg-gradient-to-l from-gray-50 to-transparent dark:from-pitch-900">
+              <span className="mr-1 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500 shadow-sm dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-400">
+                more →
+              </span>
+            </div>
+          )}
+          {edges.left && (
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-gray-50 to-transparent dark:from-pitch-900" />
           )}
         </div>
-      </div>
+      )}
+
+      {standaloneTrades.length > 0 && (
+        <section className="space-y-2">
+          {components.length > 0 && (
+            <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
+              Other trades
+            </h3>
+          )}
+          <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {standaloneTrades.map((trade) => (
+              <TeamTradeCard
+                key={trade.tradeId}
+                trade={trade}
+                leagueId={leagueId}
+                sourceKeys={new Set()}
+                targetKeys={new Set()}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

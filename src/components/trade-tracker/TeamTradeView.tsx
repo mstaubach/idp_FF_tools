@@ -74,7 +74,7 @@ export default function TeamTradeView({
       {mode === "timeline" ? (
         <TradeTimeline view={view} leagueId={leagueId} />
       ) : (
-        <TeamTradeCanvas view={view} />
+        <TeamTradeCanvas view={view} leagueId={leagueId} />
       )}
     </div>
   );
