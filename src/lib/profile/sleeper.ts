@@ -27,8 +27,10 @@ export async function fetchUserLeagues(
   userId: string,
   season: string
 ): Promise<SavedLeague[]> {
+  // userId normally comes from Sleeper's own lookup response, but encode it
+  // anyway so an unexpected value can't add path segments to the request URL.
   const res = await fetch(
-    `https://api.sleeper.app/v1/user/${userId}/leagues/nfl/${season}`
+    `https://api.sleeper.app/v1/user/${encodeURIComponent(userId)}/leagues/nfl/${season}`
   );
   if (!res.ok) throw new Error('Failed to fetch leagues');
   const data = await res.json();
