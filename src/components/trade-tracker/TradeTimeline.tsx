@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { TeamView } from "@/lib/trade-tracker/team-view";
+import type { TeamTrade, TeamView } from "@/lib/trade-tracker/team-view";
 import TeamTradeCard from "./TeamTradeCard";
 import { chainKeySets } from "./chainKeys";
 
@@ -50,7 +50,7 @@ export default function TradeTimeline({
   );
 
   const seasons = useMemo(() => {
-    const bySeason = new Map<string, typeof view.trades>();
+    const bySeason = new Map<string, TeamTrade[]>();
     for (const t of [...view.trades].sort((a, b) => b.createdAt - a.createdAt)) {
       const list = bySeason.get(t.season) ?? [];
       list.push(t);
