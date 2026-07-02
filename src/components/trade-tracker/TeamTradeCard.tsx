@@ -123,7 +123,8 @@ export default function TeamTradeCard({
   targetKeys: Set<string>;
 }) {
   const date = new Date(trade.createdAt);
-  const counterparty = trade.counterparties.join(", ") || "Unknown";
+  const counterparty =
+    trade.counterparties.map((c) => c.name).join(", ") || "Unknown";
   return (
     <article className="w-md shrink-0 rounded-xl border border-gray-200 bg-white p-5 dark:border-pitch-700 dark:bg-pitch-800/60">
       <div className="mb-1 text-sm font-semibold text-gray-800 dark:text-slate-200">

@@ -14,7 +14,7 @@ const player: ReceivedAsset = { kind: 'player', playerName: 'Player1', position:
 
 const trade: TeamTrade = {
   tradeId: 't1', season: '2024', createdAt: 1000,
-  counterparties: ['Bravo'], tradedAway: [player], receives: [pick],
+  counterparties: [{ rosterId: 7, name: 'Bravo' }], tradedAway: [player], receives: [pick],
 };
 
 describe('TeamTradeCard', () => {
@@ -43,11 +43,11 @@ describe('TeamTradeCard', () => {
   it('produces distinct anchors for the same pick re-acquired and re-traded across different trades', () => {
     const tradeT1: TeamTrade = {
       tradeId: 't1', season: '2024', createdAt: 1000,
-      counterparties: ['Alpha'], tradedAway: [player], receives: [pick],
+      counterparties: [{ rosterId: 1, name: 'Alpha' }], tradedAway: [player], receives: [pick],
     };
     const tradeT3: TeamTrade = {
       tradeId: 't3', season: '2024', createdAt: 3000,
-      counterparties: ['Gamma'], tradedAway: [player], receives: [pick],
+      counterparties: [{ rosterId: 3, name: 'Gamma' }], tradedAway: [player], receives: [pick],
     };
 
     const { container: c1 } = render(

@@ -10,11 +10,18 @@ export interface LeagueTeams {
   teams: TeamSummary[];
 }
 
+// The other franchise in a trade. rosterId is null when Sleeper omitted the
+// giving roster on a flow, so the UI can't always link to a team page.
+export interface Counterparty {
+  rosterId: number | null;
+  name: string;
+}
+
 export interface TeamTrade {
   tradeId: string;
   season: string;
   createdAt: number;
-  counterparties: string[];
+  counterparties: Counterparty[];
   tradedAway: ReceivedAsset[];
   receives: ReceivedAsset[];
 }
@@ -71,22 +78,30 @@ export function deriveTeamView(
     .map((tv) => {
       const receives: ReceivedAsset[] = [];
       const tradedAway: ReceivedAsset[] = [];
-      const counterparties = new Set<string>();
+      const counterparties = new Map<string, Counterparty>();
       for (const f of tv.flows) {
         if (f.toRosterId === rosterId) {
           receives.push(f.asset);
-          if (f.fromTeamName) counterparties.add(f.fromTeamName);
+          if (f.fromTeamName) {
+            counterparties.set(f.fromTeamName, {
+              rosterId: f.fromRosterId,
+              name: f.fromTeamName,
+            });
+          }
         }
         if (f.fromRosterId === rosterId) {
           tradedAway.push(f.asset);
-          counterparties.add(f.toTeamName);
+          counterparties.set(f.toTeamName, {
+            rosterId: f.toRosterId,
+            name: f.toTeamName,
+          });
         }
       }
       return {
         tradeId: tv.id,
         season: tv.season,
         createdAt: tv.createdAt,
-        counterparties: Array.from(counterparties),
+        counterparties: Array.from(counterparties.values()),
         tradedAway,
         receives,
       };

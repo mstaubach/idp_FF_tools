@@ -82,7 +82,13 @@ describe('deriveTeamView', () => {
     const t1 = view.trades[0];
     expect(t1.receives.map((a) => (a.kind === 'player' ? a.playerName : a.kind))).toEqual(['pick']);
     expect(t1.tradedAway.map((a) => (a.kind === 'player' ? a.playerName : 'pick'))).toEqual(['Player1']);
-    expect(t1.counterparties).toEqual(['Bravo']);
+    expect(t1.counterparties).toEqual([{ rosterId: 2, name: 'Bravo' }]);
+  });
+
+  it('carries the counterparty roster id so the UI can link to their team page', () => {
+    const view = deriveTeamView(fixture(), 3)!;
+    // Charlie's only trade is with Alpha (roster 1)
+    expect(view.trades[0].counterparties).toEqual([{ rosterId: 1, name: 'Alpha' }]);
   });
 
   it('links a received pick to the later trade where it was traded away', () => {
