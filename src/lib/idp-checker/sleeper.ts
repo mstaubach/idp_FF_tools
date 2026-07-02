@@ -24,9 +24,23 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 export async function _fetchPlayersRaw(): Promise<SleeperPlayer[]> {
   const res = await fetchWithTimeout(`${SLEEPER_BASE}/players/nfl`);
   const data: Record<string, SleeperPlayer> = await res.json();
-  return Object.values(data).filter(
-    (p) => p.active && p.position && (IDP_POSITIONS as readonly string[]).includes(p.position)
-  );
+  // Filtering alone leaves ~4300 raw player objects (~5MB serialized) — over
+  // Next.js's 2MB unstable_cache limit, which silently skips caching and
+  // re-downloads the ~16MB /players/nfl on every request. Slim each player to
+  // the fields this tool reads so the cached value fits (~570KB).
+  return Object.values(data)
+    .filter(
+      (p) => p.active && p.position && (IDP_POSITIONS as readonly string[]).includes(p.position)
+    )
+    .map((p) => ({
+      player_id: p.player_id,
+      full_name: p.full_name,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      position: p.position,
+      team: p.team,
+      active: p.active,
+    }));
 }
 
 export async function _fetchRostersRaw(leagueId: string): Promise<SleeperRoster[]> {
