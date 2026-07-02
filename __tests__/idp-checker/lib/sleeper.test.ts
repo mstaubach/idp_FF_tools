@@ -32,6 +32,27 @@ describe('sleeper client', () => {
       expect(players.map(p => p.full_name)).not.toContain('Josh Allen');
     });
 
+    it('slims players to only the fields the tool uses (cache size limit)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          '1': {
+            player_id: '1', full_name: 'Pat Queen', first_name: 'Pat', last_name: 'Queen',
+            position: 'LB', team: 'BAL', active: true,
+            // Extra raw API fields that must not survive into the cached value
+            hashtag: '#patqueen', injury_status: null, fantasy_data_id: 12345,
+            metadata: { channel_id: '123' }, sportradar_id: 'abc',
+          },
+        }),
+      });
+      const players = await _fetchPlayersRaw();
+      expect(players).toHaveLength(1);
+      expect(players[0]).toEqual({
+        player_id: '1', full_name: 'Pat Queen', first_name: 'Pat', last_name: 'Queen',
+        position: 'LB', team: 'BAL', active: true,
+      });
+    });
+
     it('throws on API failure', async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
       await expect(_fetchPlayersRaw()).rejects.toThrow('Sleeper API error');

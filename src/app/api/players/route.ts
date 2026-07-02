@@ -11,7 +11,13 @@ export async function GET() {
       position: p.position,
       team: p.team,
     }));
-    return NextResponse.json(autocomplete);
+    // ~400KB of rarely-changing data: let browsers/CDN cache it instead of
+    // re-serializing per request. TTLs mirror the server-side player cache.
+    return NextResponse.json(autocomplete, {
+      headers: {
+        'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=3600',
+      },
+    });
   } catch {
     return NextResponse.json(
       { error: 'Failed to fetch player data' },
