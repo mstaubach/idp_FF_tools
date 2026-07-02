@@ -111,8 +111,13 @@ export function pickKey(
 }
 
 const ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
-function ordinal(round: number): string {
+export function ordinal(round: number): string {
   return ORDINALS[round] ?? `${round}th`;
+}
+
+// Sleeper team names sometimes arrive with stray whitespace.
+function cleanName(name: string | null | undefined): string {
+  return name?.trim() ?? "";
 }
 
 function playerName(p: SleeperPlayer | undefined, fallbackId: string): string {
@@ -336,7 +341,9 @@ export async function buildLeagueTrades(
       const user = roster.owner_id ? userById.get(roster.owner_id) : undefined;
       names.set(
         roster.roster_id,
-        user?.metadata?.team_name || user?.display_name || `Roster ${roster.roster_id}`,
+        cleanName(user?.metadata?.team_name) ||
+          cleanName(user?.display_name) ||
+          `Roster ${roster.roster_id}`,
       );
     }
     rosterNamesByLeague.set(league.league_id, names);
@@ -372,8 +379,10 @@ export async function buildLeagueTrades(
     return {
       rosterId: roster.roster_id,
       teamName:
-        user?.metadata?.team_name || user?.display_name || `Roster ${roster.roster_id}`,
-      ownerName: user?.display_name || "Unknown",
+        cleanName(user?.metadata?.team_name) ||
+        cleanName(user?.display_name) ||
+        `Roster ${roster.roster_id}`,
+      ownerName: cleanName(user?.display_name) || "Unknown",
     };
   });
 
