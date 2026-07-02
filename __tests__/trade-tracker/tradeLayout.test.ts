@@ -59,6 +59,33 @@ describe('layoutTrades', () => {
     const pos = layoutTrades(trades, [link('t1', 't2')]);
     for (const t of trades) expect(pos.has(t.tradeId)).toBe(true);
   });
+
+  it('packs a branch into the topmost free row of its column', () => {
+    // Two roots each with a chain, plus a branch off t1. Old layout put the
+    // branch on a brand-new global row; packing should reuse row 1 (free in col 1).
+    const trades = [
+      trade('t1', 100), trade('t2', 200), trade('t3', 300),
+      trade('r2', 150), trade('r2b', 250),
+    ];
+    const links = [link('t1', 't2'), link('t1', 't3'), link('r2', 'r2b')];
+    const pos = layoutTrades(trades, links);
+    expect(pos.get('t1')).toEqual({ row: 0, column: 0 });
+    expect(pos.get('t2')).toEqual({ row: 0, column: 1 });
+    expect(pos.get('t3')).toEqual({ row: 1, column: 1 }); // packed beside r2's row, not row 2
+    expect(pos.get('r2')).toEqual({ row: 1, column: 0 });
+  });
+
+  it('never places two trades in the same cell', () => {
+    const trades = [
+      trade('a', 1), trade('b', 2), trade('c', 3), trade('d', 4), trade('e', 5),
+    ];
+    const links = [link('a', 'b'), link('a', 'c'), link('a', 'd'), link('d', 'e')];
+    const pos = layoutTrades(trades, links);
+    const cells = new Set(
+      Array.from(pos.values()).map((p) => `${p.row}:${p.column}`),
+    );
+    expect(cells.size).toBe(trades.length);
+  });
 });
 
 describe('layoutChainComponents', () => {

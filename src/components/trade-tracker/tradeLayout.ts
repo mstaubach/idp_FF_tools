@@ -5,13 +5,11 @@ export interface CellPosition {
   column: number;
 }
 
-// Lays trades on a grid: trades not fed by any arrow ("net new") stack
-// vertically in column 0, oldest at top. A trade fed by an arrow sits one
-// column to the right of its feeder; the earliest such target continues the
-// feeder's row while later targets branch onto new rows. A trade fed by
-// several arrows (a diamond) is placed once, to the right of its farthest
-// feeder (column = longest path from a root). Chain links only ever point
-// forward in time, so the graph is acyclic.
+// Lays trades on a grid: column = longest chain-path from a root (so a diamond
+// target lands right of every feeder). Rows are packed first-fit: a trade takes
+// the topmost free row in its column, except a chain continuation first tries
+// to stay on its feeder's row so straight chains read left-to-right. Chain
+// links only ever point forward in time, so the graph is acyclic.
 export function layoutTrades(
   trades: TeamTrade[],
   chainLinks: PickChainLink[],
@@ -49,11 +47,20 @@ export function layoutTrades(
   }
 
   const pos = new Map<string, CellPosition>();
-  let nextRow = 0;
+  const occupied = new Set<string>(); // "row:column"
 
-  function place(id: string, row: number): void {
+  function firstFreeRow(col: number, startRow: number): number {
+    let row = startRow;
+    while (occupied.has(`${row}:${col}`)) row++;
+    return row;
+  }
+
+  function place(id: string, preferredRow: number): void {
     if (pos.has(id)) return;
-    pos.set(id, { row, column: column(id) });
+    const col = column(id);
+    const row = firstFreeRow(col, preferredRow);
+    pos.set(id, { row, column: col });
+    occupied.add(`${row}:${col}`);
     let continued = false;
     for (const child of outEdges.get(id) ?? []) {
       if (pos.has(child)) continue;
@@ -61,7 +68,7 @@ export function layoutTrades(
         place(child, row); // earliest unplaced target continues this row
         continued = true;
       } else {
-        place(child, nextRow++); // later targets branch onto a new row
+        place(child, 0); // later targets pack into the topmost free row
       }
     }
   }
@@ -69,13 +76,9 @@ export function layoutTrades(
   const roots = trades
     .filter((t) => (inEdges.get(t.tradeId) ?? []).length === 0)
     .sort((a, b) => a.createdAt - b.createdAt);
-  for (const root of roots) {
-    if (!pos.has(root.tradeId)) place(root.tradeId, nextRow++);
-  }
+  for (const root of roots) place(root.tradeId, 0);
   // Safety net for any trade a root traversal didn't reach.
-  for (const t of trades) {
-    if (!pos.has(t.tradeId)) place(t.tradeId, nextRow++);
-  }
+  for (const t of trades) place(t.tradeId, 0);
 
   return pos;
 }
