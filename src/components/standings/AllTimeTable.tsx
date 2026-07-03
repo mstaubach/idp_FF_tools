@@ -11,15 +11,15 @@ export default function AllTimeTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full table-fixed border-collapse text-sm">
         <thead>
           <tr className="border-b border-gray-200 text-left text-gray-500 dark:border-pitch-700 dark:text-slate-400">
-            <th className="p-3 font-medium" scope="col">Manager</th>
+            <th className="w-2/5 p-3 font-medium" scope="col">Manager</th>
             <th className="p-3 font-medium" scope="col">W</th>
             <th className="p-3 font-medium" scope="col">L</th>
-            <th className="p-3 font-medium" scope="col">T</th>
-            <th className="p-3 font-medium" scope="col">Titles</th>
             <th className="p-3 font-medium" scope="col">Win%</th>
+            <th className="p-3 font-medium" scope="col">Titles</th>
+            <th className="p-3 font-medium" scope="col">1st</th>
           </tr>
         </thead>
         <tbody>
@@ -38,11 +38,13 @@ export default function AllTimeTable({
               </td>
               <td className="p-3 text-gray-700 dark:text-slate-200">{r.wins}</td>
               <td className="p-3 text-gray-700 dark:text-slate-200">{r.losses}</td>
-              <td className="p-3 text-gray-700 dark:text-slate-200">{r.ties}</td>
+              <td className="p-3 text-gray-700 dark:text-slate-200">{pct(r.winPct)}</td>
               <td className="p-3 text-amber-600 dark:text-amber-300">
                 {r.championships > 0 ? `🏆×${r.championships}` : "—"}
               </td>
-              <td className="p-3 text-gray-700 dark:text-slate-200">{pct(r.winPct)}</td>
+              <td className="p-3 text-sky-600 dark:text-sky-300">
+                {r.firstPlaceFinishes > 0 ? `🥇×${r.firstPlaceFinishes}` : "—"}
+              </td>
             </tr>
           ))}
         </tbody>

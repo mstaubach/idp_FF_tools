@@ -63,6 +63,9 @@ export interface SeasonStandings {
   season: string;
   leagueId: string;
   championOwnerId: string | null;
+  // Whether Sleeper reports this league season as finished. In-progress seasons
+  // are excluded from first-place-finish tallies (their rank-1 is provisional).
+  isComplete: boolean;
   rows: SeasonRow[];
 }
 
@@ -73,6 +76,7 @@ export interface ManagerRecord {
   losses: number;
   ties: number;
   championships: number;
+  firstPlaceFinishes: number;
   winPct: number;
   isCurrentMember: boolean;
 }
