@@ -11,7 +11,7 @@ vi.mock('@/lib/trade-tracker/sleeper', () => ({
   getPlayers: vi.fn(),
 }));
 
-import { buildLeagueTrades } from '@/lib/trade-tracker/resolve';
+import { buildLeagueTrades, ordinal } from '@/lib/trade-tracker/resolve';
 import * as sleeper from '@/lib/trade-tracker/sleeper';
 
 function seedMocks() {
@@ -26,7 +26,8 @@ function seedMocks() {
     },
   ]);
   vi.mocked(sleeper.getUsers).mockResolvedValue([
-    { user_id: 'u1', display_name: 'Alice', avatar: null, metadata: { team_name: 'Alpha' } },
+    // team_name arrives padded from Sleeper sometimes — resolution must trim it.
+    { user_id: 'u1', display_name: 'Alice', avatar: null, metadata: { team_name: 'Alpha ' } },
     { user_id: 'u2', display_name: 'Bob', avatar: null },
   ]);
   vi.mocked(sleeper.getRosters).mockResolvedValue([
@@ -91,5 +92,19 @@ describe('buildLeagueTrades', () => {
       { rosterId: 1, teamName: 'Alpha', ownerName: 'Alice' },
       { rosterId: 2, teamName: 'Bob', ownerName: 'Bob' },
     ]);
+  });
+
+  it('trims padded team names in per-league flow names', async () => {
+    const result = await buildLeagueTrades('L1');
+    const flow = result!.trades[0].flows[0];
+    expect(flow.fromTeamName).toBe('Alpha');
+  });
+});
+
+describe('ordinal', () => {
+  it('formats draft rounds', () => {
+    expect(ordinal(1)).toBe('1st');
+    expect(ordinal(2)).toBe('2nd');
+    expect(ordinal(9)).toBe('9th');
   });
 });

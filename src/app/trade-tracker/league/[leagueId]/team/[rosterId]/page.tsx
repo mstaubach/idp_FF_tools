@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Message from "@/components/trade-tracker/Message";
-import TeamTradeCanvas from "@/components/trade-tracker/TeamTradeCanvas";
+import TeamTradeView from "@/components/trade-tracker/TeamTradeView";
 import { buildTeamView } from "@/lib/trade-tracker/team-view";
 
 export const revalidate = 300;
@@ -42,7 +42,6 @@ export default async function TeamPage({
         <div>
           <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">{data.teamName}</h1>
           <p className="text-sm text-gray-500 dark:text-slate-400">
-            {data.trades.length} trade{data.trades.length === 1 ? "" : "s"} ·{" "}
             {data.leagueName}
           </p>
         </div>
@@ -60,7 +59,7 @@ export default async function TeamPage({
           body="This team hasn't made any trades in the league's history."
         />
       ) : (
-        <TeamTradeCanvas view={data} />
+        <TeamTradeView view={data} leagueId={leagueId} />
       )}
     </main>
   );
