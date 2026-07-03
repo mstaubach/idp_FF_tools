@@ -142,6 +142,25 @@ describe('buildLeagueHistory', () => {
     expect(h.champions.map((c) => c.season)).toEqual(['2025', '2024']);
   });
 
+  it('counts first-place finishes only for complete seasons, ignoring in-progress rank-1', () => {
+    const s2024 = season2024(); // complete; alice finishes rank 1 (10-4)
+    const s2025: SeasonInput = {
+      // in-progress season: bob currently sits rank 1 (11-3) but it must not count
+      league: { league_id: 'L25', name: 'Dynasty', season: '2025', previous_league_id: 'L24', total_rosters: 4, status: 'in_season' },
+      rosters: [roster(1, 'alice', 9, 5, 0, 1450), roster(2, 'bob', 11, 3, 0, 1600), roster(3, 'carol', 7, 7, 0, 1350), roster(4, 'dave', 5, 9, 0, 1250)],
+      users: [user('alice', 'Alice FC'), user('bob', 'Bob United'), user('carol', 'Carol City'), user('dave', 'Dave Rovers')],
+      bracket: [{ r: 2, m: 3, t1: 2, t2: 1, w: null, l: null, p: 1 }],
+    };
+    const h = buildLeagueHistory([s2025, s2024]);
+    const alice = h.allTime.find((m) => m.ownerId === 'alice')!;
+    const bob = h.allTime.find((m) => m.ownerId === 'bob')!;
+    expect(alice.firstPlaceFinishes).toBe(1); // only the complete 2024 season
+    expect(bob.firstPlaceFinishes).toBe(0); // 2025 is in-progress
+    // Total first-place finishes must never exceed the number of complete seasons.
+    const total = h.allTime.reduce((sum, m) => sum + m.firstPlaceFinishes, 0);
+    expect(total).toBe(1);
+  });
+
   it('computes winPct as (wins + 0.5*ties) / games, 0 when no games', () => {
     const s: SeasonInput = {
       league: { league_id: 'L1', name: 'X', season: '2024', previous_league_id: null, total_rosters: 2 },

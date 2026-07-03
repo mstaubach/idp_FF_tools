@@ -68,6 +68,7 @@ export function buildSeasonStandings(input: SeasonInput): SeasonStandings {
     season: input.league.season,
     leagueId: input.league.league_id,
     championOwnerId: championOwnerId(input.bracket, input.rosters),
+    isComplete: input.league.status === "complete",
     rows,
   };
 }
@@ -97,6 +98,7 @@ export function buildLeagueHistory(seasons: SeasonInput[]): LeagueHistory {
           losses: 0,
           ties: 0,
           championships: 0,
+          firstPlaceFinishes: 0,
           winPct: 0,
           isCurrentMember: currentOwners.has(row.ownerId),
         };
@@ -105,6 +107,7 @@ export function buildLeagueHistory(seasons: SeasonInput[]): LeagueHistory {
       record.wins += row.wins;
       record.losses += row.losses;
       record.ties += row.ties;
+      if (season.isComplete && row.rank === 1) record.firstPlaceFinishes += 1;
     }
     if (season.championOwnerId) {
       const champ = byOwner.get(season.championOwnerId);
