@@ -22,10 +22,12 @@ const PROFILE: Profile = {
   primaryLeagueId: '111111',
 };
 
+const onEditProfile = vi.fn();
+
 function renderSwitcher() {
   return render(
     <ProfileProvider>
-      <LeagueSwitcher />
+      <LeagueSwitcher onEditProfile={onEditProfile} />
     </ProfileProvider>
   );
 }
@@ -40,6 +42,7 @@ beforeEach(() => {
   localStorage.clear();
   document.cookie = 'idp_active_league=; path=/; max-age=0';
   push.mockClear();
+  onEditProfile.mockClear();
   pathname = '/standings/111111';
 });
 
@@ -99,5 +102,30 @@ describe('LeagueSwitcher', () => {
     renderSwitcher();
     await openDropdown();
     expect(screen.queryByText('Different league…')).toBeNull();
+  });
+
+  it('shows the username header when the menu is open', async () => {
+    localStorage.setItem('idp_dynasty_profile', JSON.stringify(PROFILE));
+    renderSwitcher();
+    await openDropdown();
+    expect(screen.getByText('@mstaubach')).toBeInTheDocument();
+  });
+
+  it('clicking "Edit profile" calls onEditProfile and does not navigate', async () => {
+    localStorage.setItem('idp_dynasty_profile', JSON.stringify(PROFILE));
+    renderSwitcher();
+    await openDropdown();
+    fireEvent.click(screen.getByText('Edit profile'));
+    expect(onEditProfile).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('clicking "Clear profile" removes the profile', async () => {
+    localStorage.setItem('idp_dynasty_profile', JSON.stringify(PROFILE));
+    const { container } = renderSwitcher();
+    await openDropdown();
+    fireEvent.click(screen.getByText('Clear profile'));
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(localStorage.getItem('idp_dynasty_profile')).toBeNull();
   });
 });

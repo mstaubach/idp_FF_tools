@@ -8,8 +8,13 @@ import { leaguePathFor, toolRootFor } from '@/lib/profile/active-league';
 
 type OpenState = { open: boolean; path: string | null };
 
-export default function LeagueSwitcher() {
-  const { profile, activeLeagueId, setActiveLeagueId } = useProfile();
+export default function LeagueSwitcher({
+  onEditProfile,
+}: {
+  onEditProfile: () => void;
+}) {
+  const { profile, activeLeagueId, setActiveLeagueId, clearProfile } =
+    useProfile();
   const pathname = usePathname();
   const router = useRouter();
   const [openState, setOpenState] = useState<OpenState>({
@@ -74,6 +79,9 @@ export default function LeagueSwitcher() {
       </button>
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 min-w-[13rem] rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-pitch-700 dark:bg-pitch-800">
+          <div className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 truncate">
+            @{profile.sleeperUsername}
+          </div>
           {profile.leagues.map((league) => {
             const isPrimary = league.leagueId === profile.primaryLeagueId;
             const isActive = league.leagueId === activeLeagueId;
@@ -104,6 +112,25 @@ export default function LeagueSwitcher() {
               </Link>
             </>
           )}
+          <hr className="my-1 border-gray-100 dark:border-pitch-700" />
+          <button
+            onClick={() => {
+              close();
+              onEditProfile();
+            }}
+            className="block w-full px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-200 dark:hover:bg-pitch-700 dark:hover:text-white"
+          >
+            Edit profile
+          </button>
+          <button
+            onClick={() => {
+              clearProfile();
+              close();
+            }}
+            className="block w-full px-4 py-2 text-left text-sm font-medium text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            Clear profile
+          </button>
         </div>
       )}
     </div>
