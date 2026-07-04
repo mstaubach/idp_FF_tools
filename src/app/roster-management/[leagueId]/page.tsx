@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLeague, getRosters, getUsers } from "@/lib/roster-management/sleeper";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function RosterManagementLeaguePage({
   params,

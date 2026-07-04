@@ -11,11 +11,8 @@ const BASE = "https://api.sleeper.app/v1";
 
 class SleeperError extends Error {}
 
-async function getJson<T>(
-  path: string,
-  revalidate: number,
-): Promise<T | null> {
-  const res = await fetch(`${BASE}${path}`, { next: { revalidate } });
+async function getJson<T>(path: string): Promise<T | null> {
+  const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new SleeperError(`Sleeper ${res.status}: ${path}`);
   return res.json() as Promise<T>;
@@ -25,21 +22,17 @@ export async function getLeague(
   leagueId: string,
 ): Promise<SleeperLeague | null> {
   if (!isValidSleeperId(leagueId)) return null;
-  return getJson<SleeperLeague>(`/league/${leagueId}`, 300);
+  return getJson<SleeperLeague>(`/league/${leagueId}`);
 }
 
 export async function getRosters(leagueId: string): Promise<SleeperRoster[]> {
   if (!isValidSleeperId(leagueId)) return [];
-  return (
-    (await getJson<SleeperRoster[]>(`/league/${leagueId}/rosters`, 300)) ?? []
-  );
+  return (await getJson<SleeperRoster[]>(`/league/${leagueId}/rosters`)) ?? [];
 }
 
 export async function getUsers(leagueId: string): Promise<SleeperUser[]> {
   if (!isValidSleeperId(leagueId)) return [];
-  return (
-    (await getJson<SleeperUser[]>(`/league/${leagueId}/users`, 300)) ?? []
-  );
+  return (await getJson<SleeperUser[]>(`/league/${leagueId}/users`)) ?? [];
 }
 
 async function _fetchPlayersRaw(): Promise<Record<string, SleeperPlayer>> {
