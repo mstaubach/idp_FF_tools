@@ -40,7 +40,8 @@ in the NavBar between the nav dropdowns and the profile button:
 
 ### 2. Tool path mapping
 
-A small pure module `src/lib/profile/tool-paths.ts` exporting
+A small pure module `src/lib/profile/active-league.ts` (also home to the
+cookie name/validation helpers of §3) exporting
 `leaguePathFor(pathname: string, leagueId: string): string | null`:
 
 | Current pathname prefix        | Result                              |
