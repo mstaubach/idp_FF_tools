@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import ThemeToggle from "./ThemeToggle";
 import { useProfile } from "@/context/ProfileContext";
 import ProfileModal from "@/components/profile/ProfileModal";
+import LeagueSwitcher from "@/components/profile/LeagueSwitcher";
 
 const dropdowns = [
   {
@@ -39,8 +40,7 @@ const NavBar = () => {
       : { open: true, path: pathname });
   const navRef = useRef(null);
 
-  const { profile, activeLeagueId, setActiveLeagueId, clearProfile } =
-    useProfile();
+  const { profile, clearProfile } = useProfile();
 
   const isOpen = (i) =>
     openState.index === i && openState.path === pathname;
@@ -130,6 +130,8 @@ const NavBar = () => {
               );
             })}
 
+            <LeagueSwitcher />
+
             {/* Profile area */}
             {!profile ? (
               <button
@@ -163,31 +165,6 @@ const NavBar = () => {
                 </button>
                 {profileDropdownOpen && (
                   <div className="absolute right-0 top-full z-50 mt-1 min-w-[13rem] rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-pitch-700 dark:bg-pitch-800">
-                    {profile.leagues.map((league) => {
-                      const isPrimary =
-                        league.leagueId === profile.primaryLeagueId;
-                      const isActiveLg = league.leagueId === activeLeagueId;
-                      return (
-                        <button
-                          key={league.leagueId}
-                          onClick={() => {
-                            setActiveLeagueId(league.leagueId);
-                            closeProfileDropdown();
-                          }}
-                          className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium transition ${
-                            isActiveLg
-                              ? "bg-green-700 text-white"
-                              : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-200 dark:hover:bg-pitch-700 dark:hover:text-white"
-                          }`}
-                        >
-                          {isPrimary && (
-                            <span className="text-amber-400">★</span>
-                          )}
-                          <span className="flex-1 truncate">{league.name}</span>
-                        </button>
-                      );
-                    })}
-                    <hr className="my-1 border-gray-100 dark:border-pitch-700" />
                     <button
                       onClick={() => {
                         closeProfileDropdown();
