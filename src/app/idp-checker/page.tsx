@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, startTransition } from 'react';
+import { useProfile } from '@/context/ProfileContext';
 import LeagueInput from '@/components/idp-checker/LeagueInput';
 import PlayerInput from '@/components/idp-checker/PlayerInput';
 import ResultsTable from '@/components/idp-checker/ResultsTable';
@@ -8,14 +9,21 @@ import Filters from '@/components/idp-checker/Filters';
 import WaiverInfo from '@/components/idp-checker/WaiverInfo';
 import UnmatchedPlayers from '@/components/idp-checker/UnmatchedPlayers';
 import ErrorBanner from '@/components/idp-checker/ErrorBanner';
-import YourLeagues from '@/components/profile/YourLeagues';
 import FirstVisitPrompt from '@/components/profile/FirstVisitPrompt';
 import { ParsedPlayer, CheckAvailabilityResponse } from '@/lib/idp-checker/types';
 
-const DEFAULT_LEAGUE_ID = '';
-
 export default function IdpCheckerPage() {
-  const [leagueId, setLeagueId] = useState(DEFAULT_LEAGUE_ID);
+  const { activeLeagueId } = useProfile();
+  const [leagueId, setLeagueId] = useState('');
+
+  useEffect(() => {
+    if (activeLeagueId) {
+      startTransition(() => {
+        setLeagueId(activeLeagueId);
+      });
+    }
+  }, [activeLeagueId]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<CheckAvailabilityResponse | null>(null);
@@ -59,11 +67,6 @@ export default function IdpCheckerPage() {
       <FirstVisitPrompt />
 
       <div className="space-y-6 mt-6">
-        <YourLeagues
-          toolPath="/idp-checker"
-          onLeagueSelect={(id) => setLeagueId(id)}
-        />
-
         <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
           <LeagueInput leagueId={leagueId} onChange={setLeagueId} />
         </div>

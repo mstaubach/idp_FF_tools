@@ -33,7 +33,10 @@ function wrap(onAction: (ctx: ReturnType<typeof useProfile>) => void) {
   );
 }
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  document.cookie = 'idp_active_league=; path=/; max-age=0';
+});
 
 describe('ProfileProvider', () => {
   it('starts with null profile when localStorage is empty', async () => {
@@ -75,7 +78,7 @@ describe('ProfileProvider', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
-  it('setActiveLeagueId updates session league without persisting', async () => {
+  it('setActiveLeagueId persists the selection and sets the cookie', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(TEST_PROFILE));
     wrap((ctx) => ctx.setActiveLeagueId('xyz'));
     await waitFor(() =>
@@ -85,8 +88,92 @@ describe('ProfileProvider', () => {
     await waitFor(() =>
       expect(screen.getByRole('button')).toHaveTextContent('mstaubach/xyz')
     );
+    expect(localStorage.getItem('idp_dynasty_active_league')).toBe('xyz');
+    expect(document.cookie).toContain('idp_active_league=xyz');
+    // primary league is untouched
     expect(
       JSON.parse(localStorage.getItem(STORAGE_KEY)!).primaryLeagueId
     ).toBe('abc');
+  });
+
+  it('restores a stored active league on hydrate when it is a saved league', async () => {
+    const profile: Profile = {
+      ...TEST_PROFILE,
+      leagues: [
+        { leagueId: 'abc', name: 'IDP Dynasty 2025' },
+        { leagueId: 'def', name: 'Second League' },
+      ],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    localStorage.setItem('idp_dynasty_active_league', 'def');
+    wrap(() => {});
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('mstaubach/def')
+    );
+    expect(document.cookie).toContain('idp_active_league=def');
+  });
+
+  it('keeps the active league when setProfile is called with a profile that still contains it', async () => {
+    const profile: Profile = {
+      sleeperUsername: 'mstaubach',
+      sleeperUserId: '123',
+      leagues: [
+        { leagueId: 'abc', name: 'IDP Dynasty 2025' },
+        { leagueId: 'def', name: 'Second League' },
+      ],
+      primaryLeagueId: 'abc',
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    localStorage.setItem('idp_dynasty_active_league', 'def');
+    wrap((ctx) => {
+      if (ctx.activeLeagueId === 'def') {
+        const newProfile: Profile = {
+          sleeperUsername: 'mstaubach',
+          sleeperUserId: '123',
+          leagues: [
+            { leagueId: 'abc', name: 'IDP Dynasty 2025' },
+            { leagueId: 'def', name: 'Second League' },
+          ],
+          primaryLeagueId: 'abc',
+        };
+        ctx.setProfile(newProfile);
+      }
+    });
+    // Wait for initial hydration
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('mstaubach/def')
+    );
+    // Click to trigger setProfile
+    act(() => screen.getByRole('button').click());
+    // Active league should remain 'def'
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('mstaubach/def')
+    );
+    expect(localStorage.getItem('idp_dynasty_active_league')).toBe('def');
+  });
+
+  it('falls back to the primary league when the stored active league is stale', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(TEST_PROFILE));
+    localStorage.setItem('idp_dynasty_active_league', 'gone');
+    wrap(() => {});
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('mstaubach/abc')
+    );
+    expect(localStorage.getItem('idp_dynasty_active_league')).toBe('abc');
+    expect(document.cookie).toContain('idp_active_league=abc');
+  });
+
+  it('clearProfile removes the active league key and cookie', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(TEST_PROFILE));
+    wrap((ctx) => ctx.clearProfile());
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('mstaubach/abc')
+    );
+    act(() => screen.getByRole('button').click());
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('none/none')
+    );
+    expect(localStorage.getItem('idp_dynasty_active_league')).toBeNull();
+    expect(document.cookie).not.toContain('idp_active_league=abc');
   });
 });
