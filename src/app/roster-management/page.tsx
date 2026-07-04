@@ -1,6 +1,10 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import YourLeagues from "@/components/profile/YourLeagues";
 import FirstVisitPrompt from "@/components/profile/FirstVisitPrompt";
+import {
+  ACTIVE_LEAGUE_COOKIE,
+  isValidLeagueId,
+} from "@/lib/profile/active-league";
 
 export const metadata = { title: "Roster Management — IDP Dynasty HQ" };
 
@@ -9,15 +13,19 @@ async function goToLeague(formData: FormData) {
   const raw = String(formData.get("leagueId") ?? "").trim();
   const match = raw.match(/(\d{6,})/);
   if (match) redirect(`/roster-management/${match[1]}`);
-  redirect("/roster-management?error=1");
+  redirect("/roster-management?error=1&picker=1");
 }
 
 export default async function RosterManagementHome({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; picker?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, picker } = await searchParams;
+  if (!picker) {
+    const active = (await cookies()).get(ACTIVE_LEAGUE_COOKIE)?.value;
+    if (isValidLeagueId(active)) redirect(`/roster-management/${active}`);
+  }
   return (
     <main className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-3">
@@ -31,8 +39,6 @@ export default async function RosterManagementHome({
         </p>
         <FirstVisitPrompt />
       </section>
-
-      <YourLeagues toolPath="/roster-management" />
 
       <form action={goToLeague} className="space-y-3">
         <label
