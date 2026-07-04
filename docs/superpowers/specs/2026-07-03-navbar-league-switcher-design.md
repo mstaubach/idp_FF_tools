@@ -34,9 +34,12 @@ in the NavBar between the nav dropdowns and the profile button:
 - A final "Different league…" item links to the current tool's landing page
   with `?picker=1` so manual league-ID entry stays reachable for profile
   users (see §4).
-- The league list is **removed from the profile dropdown**; `@username` keeps
-  only Edit profile / Clear profile. The NavBar's single source of league
-  selection is the switcher.
+- The switcher **absorbs the profile menu** (amended 2026-07-04 to declutter
+  the toolbar): the separate `@username` dropdown is removed, and the
+  switcher's menu shows `@username` as a non-interactive header, then the
+  league list, then Edit profile / Clear profile after a divider. For profile
+  users the switcher is the NavBar's single profile-related control; users
+  without a profile still get the "Set up profile" button.
 
 ### 2. Tool path mapping
 
