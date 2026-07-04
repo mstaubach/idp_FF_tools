@@ -113,6 +113,45 @@ describe('ProfileProvider', () => {
     expect(document.cookie).toContain('idp_active_league=def');
   });
 
+  it('keeps the active league when setProfile is called with a profile that still contains it', async () => {
+    const profile: Profile = {
+      sleeperUsername: 'mstaubach',
+      sleeperUserId: '123',
+      leagues: [
+        { leagueId: 'abc', name: 'IDP Dynasty 2025' },
+        { leagueId: 'def', name: 'Second League' },
+      ],
+      primaryLeagueId: 'abc',
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    localStorage.setItem('idp_dynasty_active_league', 'def');
+    wrap((ctx) => {
+      if (ctx.activeLeagueId === 'def') {
+        const newProfile: Profile = {
+          sleeperUsername: 'mstaubach',
+          sleeperUserId: '123',
+          leagues: [
+            { leagueId: 'abc', name: 'IDP Dynasty 2025' },
+            { leagueId: 'def', name: 'Second League' },
+          ],
+          primaryLeagueId: 'abc',
+        };
+        ctx.setProfile(newProfile);
+      }
+    });
+    // Wait for initial hydration
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('mstaubach/def')
+    );
+    // Click to trigger setProfile
+    act(() => screen.getByRole('button').click());
+    // Active league should remain 'def'
+    await waitFor(() =>
+      expect(screen.getByRole('button')).toHaveTextContent('mstaubach/def')
+    );
+    expect(localStorage.getItem('idp_dynasty_active_league')).toBe('def');
+  });
+
   it('falls back to the primary league when the stored active league is stale', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(TEST_PROFILE));
     localStorage.setItem('idp_dynasty_active_league', 'gone');
@@ -121,6 +160,7 @@ describe('ProfileProvider', () => {
       expect(screen.getByRole('button')).toHaveTextContent('mstaubach/abc')
     );
     expect(localStorage.getItem('idp_dynasty_active_league')).toBe('abc');
+    expect(document.cookie).toContain('idp_active_league=abc');
   });
 
   it('clearProfile removes the active league key and cookie', async () => {
