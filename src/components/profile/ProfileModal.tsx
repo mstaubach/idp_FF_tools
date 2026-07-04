@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useProfile } from '@/context/ProfileContext';
-import { lookupSleeperUser, fetchUserLeagues, currentNflSeason } from '@/lib/profile/sleeper';
+import { lookupSleeperUser, fetchCurrentSeasonLeagues } from '@/lib/profile/sleeper';
 import { SavedLeague, Profile } from '@/lib/profile/types';
 
 type Step = 'username' | 'leagues';
@@ -26,6 +26,7 @@ export default function ProfileModal({ onClose }: Props) {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [season, setSeason] = useState<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,8 +42,10 @@ export default function ProfileModal({ onClose }: Props) {
     setError(null);
     try {
       const user = await lookupSleeperUser(username.trim());
-      const fetched = await fetchUserLeagues(user.user_id, currentNflSeason());
+      const { season: resolvedSeason, leagues: fetched } =
+        await fetchCurrentSeasonLeagues(user.user_id);
       setUserId(user.user_id);
+      setSeason(resolvedSeason);
       setLeagues(fetched);
       setSelected(new Set(fetched.map((l) => l.leagueId)));
       setPrimaryLeagueId(fetched[0]?.leagueId ?? '');
@@ -145,7 +148,7 @@ export default function ProfileModal({ onClose }: Props) {
             </p>
             {leagues.length === 0 && (
               <p className="text-sm text-gray-400 dark:text-slate-500">
-                No leagues found for the {currentNflSeason()} season.
+                No leagues found for the {season} season.
               </p>
             )}
             <ul className="space-y-2">

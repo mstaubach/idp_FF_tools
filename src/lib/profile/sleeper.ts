@@ -6,13 +6,6 @@ export type SleeperUser = {
   display_name: string;
 };
 
-export function currentNflSeason(): string {
-  const now = new Date();
-  // NFL season year = current calendar year if month >= August (season starts in September),
-  // otherwise previous year (Jan–Aug are still in the prior season)
-  return String(now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1);
-}
-
 export async function lookupSleeperUser(username: string): Promise<SleeperUser> {
   const res = await fetch(
     `https://api.sleeper.app/v1/user/${encodeURIComponent(username)}`
@@ -38,4 +31,21 @@ export async function fetchUserLeagues(
     leagueId: l.league_id,
     name: l.name,
   }));
+}
+
+// Dynasty leagues often roll over to next season's league_id well before the
+// NFL season kicks off, so guessing the season from the calendar month is
+// unreliable. Ask Sleeper for the current calendar year's leagues first, and
+// only fall back to last year's if that comes back empty (offseason, before
+// the user's leagues have rolled over yet).
+export async function fetchCurrentSeasonLeagues(
+  userId: string
+): Promise<{ season: string; leagues: SavedLeague[] }> {
+  const thisYear = String(new Date().getFullYear());
+  const current = await fetchUserLeagues(userId, thisYear);
+  if (current.length > 0) return { season: thisYear, leagues: current };
+
+  const lastYear = String(Number(thisYear) - 1);
+  const previous = await fetchUserLeagues(userId, lastYear);
+  return { season: lastYear, leagues: previous };
 }
