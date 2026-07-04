@@ -23,12 +23,6 @@ export default async function RosterManagementLeaguePage({
           No Sleeper league matched &ldquo;{leagueId}&rdquo;. Check the ID and
           try again.
         </p>
-        <Link
-          href="/roster-management"
-          className="text-sm text-green-600 hover:underline dark:text-green-400"
-        >
-          ← Try another league
-        </Link>
       </main>
     );
   }
@@ -37,21 +31,13 @@ export default async function RosterManagementLeaguePage({
 
   return (
     <main className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
-            {league.name}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400">
-            Pick a team to view its depth chart
-          </p>
-        </div>
-        <Link
-          href="/roster-management"
-          className="text-sm text-green-600 hover:underline dark:text-green-400"
-        >
-          ← Try another league
-        </Link>
+      <div>
+        <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
+          {league.name}
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400">
+          Pick a team to view its depth chart
+        </p>
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2">
