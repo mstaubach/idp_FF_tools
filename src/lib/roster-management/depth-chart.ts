@@ -89,18 +89,21 @@ function buildSection(
   return { label, rows };
 }
 
+export function deriveBenchIds(roster: SleeperRoster): string[] {
+  const taxiSet = new Set(roster.taxi ?? []);
+  const reserveSet = new Set(roster.reserve ?? []);
+  const starterSet = new Set(roster.starters);
+  return roster.players.filter(
+    (id) => !starterSet.has(id) && !taxiSet.has(id) && !reserveSet.has(id),
+  );
+}
+
 export function buildDepthChart(
   roster: SleeperRoster,
   players: Record<string, SleeperPlayer>,
   positions: string[],
 ): DepthChartGrid {
-  const taxiSet = new Set(roster.taxi ?? []);
-  const reserveSet = new Set(roster.reserve ?? []);
-  const starterSet = new Set(roster.starters);
-
-  const bench = roster.players.filter(
-    (id) => !starterSet.has(id) && !taxiSet.has(id) && !reserveSet.has(id),
-  );
+  const bench = deriveBenchIds(roster);
 
   // Compute display names across all players on the roster so disambiguation
   // is consistent regardless of which section a player appears in.

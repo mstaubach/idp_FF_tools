@@ -3,6 +3,10 @@
 export type SleeperLeague = {
   name: string;
   roster_positions: string[];
+  settings: {
+    taxi_slots?: number;
+    reserve_slots?: number;
+  };
 };
 
 export type SleeperRoster = {
