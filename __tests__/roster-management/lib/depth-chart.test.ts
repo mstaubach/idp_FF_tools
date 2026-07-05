@@ -89,6 +89,7 @@ const PLAYERS: Record<string, SleeperPlayer> = {
   "7": { player_id: "7", first_name: "Micah", last_name: "Parsons", position: "LB", fantasy_positions: ["OLB"] },
   "8": { player_id: "8", first_name: "Myles", last_name: "Garrett", position: "DE", fantasy_positions: ["DE"] },
   "9": { player_id: "9", first_name: "Nik", last_name: "Bonitto", position: "LB", fantasy_positions: ["LB", "DL"] },
+  "10": { player_id: "10", first_name: "Kyle", last_name: "Juszczyk", position: "FB", fantasy_positions: ["RB", "TE"] },
 };
 
 describe("buildDepthChart", () => {
@@ -242,5 +243,23 @@ describe("buildDepthChart", () => {
     const starting = grid.sections.find((s) => s.label === "Starting")!;
     expect(starting.rows[0][POSITIONS.indexOf("LB")]?.playerId).toBe("9");
     expect(starting.rows[0][POSITIONS.indexOf("WR")]).toBeNull();
+  });
+
+  it("falls back to eligiblePositions[0] when the player's own position field isn't a valid default", () => {
+    // "10" has position: "FB" (not in POSITIONS, and no POSITION_MAP entry, so
+    // normalizePosition("FB") passes through as "FB" - not a valid default),
+    // but fantasy_positions ["RB", "TE"] are both valid columns. With no
+    // override supplied, assignedPos must fall back to eligiblePositions[0].
+    const roster: SleeperRoster = {
+      roster_id: 1, owner_id: "u1",
+      starters: ["10"], players: ["10"], taxi: null, reserve: null,
+    };
+    const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
+    const starting = grid.sections.find((s) => s.label === "Starting")!;
+    const cell = starting.rows[0][POSITIONS.indexOf("RB")];
+    expect(cell?.playerId).toBe("10");
+    expect(cell?.displayName).toBe("Kyle Juszczyk");
+    expect(cell?.eligiblePositions).toEqual(["RB", "TE"]);
+    expect(starting.rows[0][POSITIONS.indexOf("TE")]).toBeNull();
   });
 });
