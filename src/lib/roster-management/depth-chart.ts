@@ -44,24 +44,11 @@ function buildDisplayNames(
   playerIds: string[],
   players: Record<string, SleeperPlayer>,
 ): Map<string, string> {
-  const lastNameCounts = new Map<string, number>();
-  for (const id of playerIds) {
-    const lastName = players[id]?.last_name;
-    if (!lastName) continue;
-    lastNameCounts.set(lastName, (lastNameCounts.get(lastName) ?? 0) + 1);
-  }
-
   const result = new Map<string, string>();
   for (const id of playerIds) {
     const p = players[id];
     if (!p?.last_name) continue;
-    const ambiguous = (lastNameCounts.get(p.last_name) ?? 0) > 1;
-    result.set(
-      id,
-      ambiguous && p.first_name
-        ? `${p.first_name[0]}. ${p.last_name}`
-        : p.last_name,
-    );
+    result.set(id, p.first_name ? `${p.first_name} ${p.last_name}` : p.last_name);
   }
   return result;
 }

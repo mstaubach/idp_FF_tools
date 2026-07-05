@@ -66,9 +66,9 @@ describe("buildDepthChart", () => {
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
     const starting = grid.sections.find((s) => s.label === "Starting")!;
     expect(starting).toBeDefined();
-    expect(starting.rows[0][POSITIONS.indexOf("QB")]).toBe("Herbert");
-    expect(starting.rows[0][POSITIONS.indexOf("RB")]).toBe("McCaffrey");
-    expect(starting.rows[0][POSITIONS.indexOf("WR")]).toBe("Adams");
+    expect(starting.rows[0][POSITIONS.indexOf("QB")]).toBe("Justin Herbert");
+    expect(starting.rows[0][POSITIONS.indexOf("RB")]).toBe("Christian McCaffrey");
+    expect(starting.rows[0][POSITIONS.indexOf("WR")]).toBe("Davante Adams");
   });
 
   it("assigns non-starter non-taxi non-reserve players to Bench", () => {
@@ -83,7 +83,7 @@ describe("buildDepthChart", () => {
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
     const bench = grid.sections.find((s) => s.label === "Bench")!;
     expect(bench).toBeDefined();
-    expect(bench.rows[0][POSITIONS.indexOf("TE")]).toBe("Kelce");
+    expect(bench.rows[0][POSITIONS.indexOf("TE")]).toBe("Travis Kelce");
   });
 
   it("ignores empty starter slots ('0')", () => {
@@ -128,7 +128,7 @@ describe("buildDepthChart", () => {
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
     const taxi = grid.sections.find((s) => s.label === "Taxi")!;
     expect(taxi).toBeDefined();
-    expect(taxi.rows[0][POSITIONS.indexOf("LB")]).toBe("Parsons");
+    expect(taxi.rows[0][POSITIONS.indexOf("LB")]).toBe("Micah Parsons");
   });
 
   it("assigns reserve players to IR section", () => {
@@ -143,10 +143,10 @@ describe("buildDepthChart", () => {
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
     const ir = grid.sections.find((s) => s.label === "IR")!;
     expect(ir).toBeDefined();
-    expect(ir.rows[0][POSITIONS.indexOf("TE")]).toBe("Kelce");
+    expect(ir.rows[0][POSITIONS.indexOf("TE")]).toBe("Travis Kelce");
   });
 
-  it("disambiguates players sharing a last name with first initial", () => {
+  it("shows each player's full first and last name", () => {
     const roster: SleeperRoster = {
       roster_id: 1,
       owner_id: "u1",
@@ -157,8 +157,7 @@ describe("buildDepthChart", () => {
     };
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
     const starting = grid.sections.find((s) => s.label === "Starting")!;
-    // Both Williams are on the roster so both get first-initial prefix
-    expect(starting.rows[0][POSITIONS.indexOf("WR")]).toBe("T. Williams");
+    expect(starting.rows[0][POSITIONS.indexOf("WR")]).toBe("Tyler Williams");
   });
 
   it("maps DE to the DL column via normalizePosition", () => {
@@ -172,7 +171,7 @@ describe("buildDepthChart", () => {
     };
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
     const starting = grid.sections.find((s) => s.label === "Starting")!;
-    expect(starting.rows[0][POSITIONS.indexOf("DL")]).toBe("Garrett");
+    expect(starting.rows[0][POSITIONS.indexOf("DL")]).toBe("Myles Garrett");
   });
 
   it("builds multiple rows when a position has more than one player in a section", () => {
