@@ -37,14 +37,9 @@ export default async function LeaguePage({
 
   return (
     <main className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">{data.leagueName}</h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400">Pick a team to see its trade history</p>
-        </div>
-        <Link href="/trade-tracker" className="text-sm text-green-600 hover:underline dark:text-green-400">
-          ← Track another league
-        </Link>
+      <div>
+        <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">{data.leagueName}</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400">Pick a team to see its trade history</p>
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2">

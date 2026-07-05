@@ -1,4 +1,3 @@
-import Link from "next/link";
 import TaxiFillerTable from "@/components/taxi-filler/TaxiFillerTable";
 import { getLeague, getRosters, getPlayers } from "@/lib/taxi-filler/sleeper";
 import {
@@ -28,12 +27,6 @@ export default async function TaxiFillerLeaguePage({
           No Sleeper league matched &ldquo;{leagueId}&rdquo;. Check the ID and
           try again.
         </p>
-        <Link
-          href="/taxi-filler"
-          className="text-sm text-green-600 hover:underline dark:text-green-400"
-        >
-          ← Try another league
-        </Link>
       </main>
     );
   }
@@ -51,21 +44,13 @@ export default async function TaxiFillerLeaguePage({
 
   return (
     <main className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
-            {league.name}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400">
-            {subtitle}
-          </p>
-        </div>
-        <Link
-          href="/taxi-filler"
-          className="text-sm text-green-600 hover:underline dark:text-green-400"
-        >
-          ← Try another league
-        </Link>
+      <div>
+        <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
+          {league.name}
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400">
+          {subtitle}
+        </p>
       </div>
 
       {candidates.length === 0 ? (
