@@ -69,6 +69,8 @@ export default async function RosterPage({
   const positions = derivePositionColumns(league.roster_positions);
   const counts = computeRosterCounts(roster, players, league.roster_positions, league.settings);
 
+  // roster.starters is intentionally omitted here: Sleeper always includes
+  // starters within roster.players, so this union already covers them.
   const rosterPlayerIds = new Set([
     ...roster.players,
     ...(roster.taxi ?? []),

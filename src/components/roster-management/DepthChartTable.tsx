@@ -51,7 +51,7 @@ function DraggableCell({
   const draggable = cell.eligiblePositions.length > 1;
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `${section}:${position}:${cell.playerId}`,
-    data: { cell, section },
+    data: { cell, section, currentPosition: position },
     disabled: !draggable,
   });
 
@@ -146,11 +146,16 @@ export default function DepthChartTable({
     const { active, over } = event;
     if (!over) return;
 
-    const activeData = active.data.current as { cell: DepthChartCell; section: string } | undefined;
+    const activeData = active.data.current as
+      | { cell: DepthChartCell; section: string; currentPosition: string }
+      | undefined;
     const overData = over.data.current as { section: string; position: string } | undefined;
     if (!activeData || !overData) return;
     if (activeData.section !== overData.section) return;
     if (!activeData.cell.eligiblePositions.includes(overData.position)) return;
+    // Dropped back onto the column it's already rendered in - no-op, don't
+    // create a phantom override that would make "Reset corrections" appear.
+    if (overData.position === activeData.currentPosition) return;
 
     const next = { ...overrides, [activeData.cell.playerId]: overData.position };
     setOverrides(next);
