@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DepthChartTable from "@/components/roster-management/DepthChartTable";
+import RosterCountsSummary from "@/components/roster-management/RosterCountsSummary";
 import {
   getLeague,
   getRosters,
@@ -10,6 +11,7 @@ import {
   buildDepthChart,
   derivePositionColumns,
 } from "@/lib/roster-management/depth-chart";
+import { computeRosterCounts } from "@/lib/roster-management/roster-counts";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +70,7 @@ export default async function RosterPage({
 
   const positions = derivePositionColumns(league.roster_positions);
   const grid = buildDepthChart(roster, players, positions);
+  const counts = computeRosterCounts(roster, players, league.roster_positions, league.settings);
 
   return (
     <main className="mx-auto max-w-6xl space-y-6">
@@ -87,6 +90,8 @@ export default async function RosterPage({
           ← Back to teams
         </Link>
       </div>
+
+      <RosterCountsSummary counts={counts} />
 
       <DepthChartTable grid={grid} />
     </main>
