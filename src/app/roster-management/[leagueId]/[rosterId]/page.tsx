@@ -7,11 +7,9 @@ import {
   getUsers,
   getPlayers,
 } from "@/lib/roster-management/sleeper";
-import {
-  buildDepthChart,
-  derivePositionColumns,
-} from "@/lib/roster-management/depth-chart";
+import { derivePositionColumns } from "@/lib/roster-management/depth-chart";
 import { computeRosterCounts } from "@/lib/roster-management/roster-counts";
+import type { SleeperPlayer } from "@/lib/roster-management/types";
 
 export const dynamic = "force-dynamic";
 
@@ -69,8 +67,17 @@ export default async function RosterPage({
     : "Unowned";
 
   const positions = derivePositionColumns(league.roster_positions);
-  const grid = buildDepthChart(roster, players, positions);
   const counts = computeRosterCounts(roster, players, league.roster_positions, league.settings);
+
+  const rosterPlayerIds = new Set([
+    ...roster.players,
+    ...(roster.taxi ?? []),
+    ...(roster.reserve ?? []),
+  ]);
+  const rosterPlayers: Record<string, SleeperPlayer> = {};
+  for (const id of rosterPlayerIds) {
+    if (players[id]) rosterPlayers[id] = players[id];
+  }
 
   return (
     <main className="mx-auto max-w-6xl space-y-6">
@@ -93,7 +100,13 @@ export default async function RosterPage({
 
       <RosterCountsSummary counts={counts} />
 
-      <DepthChartTable grid={grid} />
+      <DepthChartTable
+        roster={roster}
+        players={rosterPlayers}
+        positions={positions}
+        leagueId={leagueId}
+        rosterId={rosterIdNum}
+      />
     </main>
   );
 }
