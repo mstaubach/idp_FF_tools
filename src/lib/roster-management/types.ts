@@ -23,6 +23,7 @@ export type SleeperPlayer = {
   first_name: string | null;
   last_name: string | null;
   position: string | null;
+  fantasy_positions?: string[] | null;
 };
 
 export type SleeperUser = {
