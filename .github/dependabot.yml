@@ -16,6 +16,16 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # ESLint 10 removed deprecated RuleContext methods (e.g. getFilename()).
+      # eslint-config-next@16.2.10 bundles eslint-plugin-react@7.37.5, which
+      # still calls them and crashes lint under ESLint 10. There's no newer
+      # stable eslint-config-next yet (only canary/preview). Recheck next
+      # time a (non-ignored) eslint-config-next dependabot PR lands -- if its
+      # bundled eslint-plugin-react has caught up, try this bump again and
+      # remove this ignore.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   # Keep the GitHub Actions used in workflows up to date too.
   - package-ecosystem: "github-actions"
