@@ -45,7 +45,12 @@ async function _fetchPlayersRaw(): Promise<Record<string, SleeperPlayer>> {
     // unstable_cache limit. Slim to only the fields buildDepthChart needs.
     const raw = (await res.json()) as Record<
       string,
-      { first_name?: string | null; last_name?: string | null; position?: string | null }
+      {
+        first_name?: string | null;
+        last_name?: string | null;
+        position?: string | null;
+        fantasy_positions?: string[] | null;
+      }
     >;
     const slim: Record<string, SleeperPlayer> = {};
     for (const [id, p] of Object.entries(raw)) {
@@ -54,6 +59,7 @@ async function _fetchPlayersRaw(): Promise<Record<string, SleeperPlayer>> {
         first_name: p.first_name ?? null,
         last_name: p.last_name ?? null,
         position: p.position ?? null,
+        fantasy_positions: p.fantasy_positions ?? null,
       };
     }
     return slim;
