@@ -11,20 +11,20 @@ export default function TaxiFillerTable({
   positions: string[];
 }) {
   const [activePosition, setActivePosition] = useState<string>("All");
+  const [rookiesOnly, setRookiesOnly] = useState(false);
 
   // Only show a position tab if at least one candidate has that position.
   const presentPositions = positions.filter((pos) =>
     candidates.some((c) => c.position === pos),
   );
 
-  const filtered =
-    activePosition === "All"
-      ? candidates
-      : candidates.filter((c) => c.position === activePosition);
+  const filtered = candidates
+    .filter((c) => activePosition === "All" || c.position === activePosition)
+    .filter((c) => !rookiesOnly || c.yearsExp === 0);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {["All", ...presentPositions].map((pos) => (
           <button
             key={pos}
@@ -38,6 +38,16 @@ export default function TaxiFillerTable({
             {pos}
           </button>
         ))}
+        <button
+          onClick={() => setRookiesOnly((v) => !v)}
+          className={`ml-auto rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+            rookiesOnly
+              ? "bg-green-700 text-white"
+              : "border border-gray-200 bg-white text-gray-700 hover:border-green-600/50 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-300 dark:hover:border-green-600/50"
+          }`}
+        >
+          Rookies Only
+        </button>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-pitch-700">
