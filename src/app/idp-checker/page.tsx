@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, startTransition } from 'react';
 import { useProfile } from '@/context/ProfileContext';
-import LeagueInput from '@/components/idp-checker/LeagueInput';
 import PlayerInput from '@/components/idp-checker/PlayerInput';
 import ResultsTable from '@/components/idp-checker/ResultsTable';
 import Filters from '@/components/idp-checker/Filters';
@@ -67,10 +66,6 @@ export default function IdpCheckerPage() {
       <FirstVisitPrompt />
 
       <div className="space-y-6 mt-6">
-        <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
-          <LeagueInput leagueId={leagueId} onChange={setLeagueId} />
-        </div>
-
         <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-pitch-700 dark:bg-pitch-800">
           <PlayerInput onSubmit={handleSubmit} isLoading={isLoading} />
         </div>
