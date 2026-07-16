@@ -31,7 +31,7 @@ export default async function DraftHistoryHome({
           Draft History
         </h1>
         <p className="text-gray-600 dark:text-slate-300">
-          Every rookie draft in your dynasty's history, one board per season.
+          Every rookie draft in your dynasty&apos;s history, one board per season.
           Click any pick to see who was taken at that slot year after year —
           and which team was on the clock.
         </p>
