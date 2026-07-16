@@ -98,7 +98,8 @@ Each `BoardCell`:
 
 Team-name resolution: roster_id → `Roster.owner_id` → user's
 `metadata.team_name`, falling back to `display_name`, falling back to
-`"Team <roster_id>"` for orphaned rosters.
+`"Roster <roster_id>"` for orphaned rosters (matching trade-tracker's
+convention).
 
 Seasons whose draft has zero picks produce no `SeasonBoard` (no tab renders).
 Cross-season slot history is derived client-side by filtering all boards'
@@ -156,7 +157,7 @@ Vitest unit tests at `__tests__/draft-history/lib/board.test.ts`:
   `isTraded: true` and correct `originalOwnerTeamName`.
 - Non-traded pick → `isTraded: false`.
 - Team-name fallback chain: `metadata.team_name` → `display_name` →
-  `"Team <roster_id>"`.
+  `"Roster <roster_id>"`.
 - Draft with zero picks yields no `SeasonBoard`.
 - Slot-owner column mapping from `slot_to_roster_id`.
 
