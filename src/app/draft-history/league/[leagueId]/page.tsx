@@ -26,28 +26,41 @@ export default async function DraftHistoryLeaguePage({
 
   let leagueName: string;
   let boards: SeasonBoard[];
+
+  let chain: Awaited<ReturnType<typeof getLeagueChain>>;
   try {
-    const chain = await getLeagueChain(leagueId);
-    if (chain.length === 0) {
-      return (
-        <Message
-          title="League not found"
-          body={`No Sleeper league matched the ID "${leagueId}". Make sure you copied the full ID.`}
-        />
-      );
-    }
-    leagueName = chain[0].name;
+    chain = await getLeagueChain(leagueId);
+  } catch {
+    return (
+      <Message
+        title="Couldn't load this league"
+        body="Sleeper's API didn't respond as expected. Double-check the league ID and try again."
+      />
+    );
+  }
 
-    const rookies = rookieLeagues(chain);
-    if (rookies.length === 0) {
-      return (
-        <Message
-          title="No rookie drafts yet"
-          body="This league is still in its startup season — check back after its first rookie draft."
-        />
-      );
-    }
+  if (chain.length === 0) {
+    return (
+      <Message
+        title="League not found"
+        body={`No Sleeper league matched the ID "${leagueId}". Make sure you copied the full ID.`}
+      />
+    );
+  }
 
+  leagueName = chain[0].name;
+
+  const rookies = rookieLeagues(chain);
+  if (rookies.length === 0) {
+    return (
+      <Message
+        title="No rookie drafts yet"
+        body="This league is still in its startup season — check back after its first rookie draft."
+      />
+    );
+  }
+
+  try {
     const inputs: SeasonInput[] = (
       await Promise.all(
         rookies.map(async (league) => {

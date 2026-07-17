@@ -3,6 +3,7 @@ export const ACTIVE_LEAGUE_COOKIE = 'idp_active_league';
 const TOOLS: Array<{ root: string; leaguePath: (id: string) => string }> = [
   { root: '/standings', leaguePath: (id) => `/standings/${id}` },
   { root: '/trade-tracker', leaguePath: (id) => `/trade-tracker/league/${id}` },
+  { root: '/draft-history', leaguePath: (id) => `/draft-history/league/${id}` },
   { root: '/roster-management', leaguePath: (id) => `/roster-management/${id}` },
   { root: '/taxi-filler', leaguePath: (id) => `/taxi-filler/${id}` },
 ];
