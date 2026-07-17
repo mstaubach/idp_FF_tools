@@ -14,6 +14,7 @@ const dropdowns = [
     links: [
       { href: "/standings", label: "Standings" },
       { href: "/trade-tracker", label: "Trade Tracker" },
+      { href: "/draft-history", label: "Draft History" },
     ],
   },
   {
