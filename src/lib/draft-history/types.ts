@@ -31,7 +31,7 @@ export interface Draft {
   status: string;
   // draft slot (as string) -> roster_id of the franchise that owns that slot.
   // The /league/{id}/drafts list endpoint omits this; only /draft/{id} has it.
-  slot_to_roster_id: Record<string, number> | null;
+  slot_to_roster_id?: Record<string, number> | null;
   settings?: {
     rounds?: number;
   };

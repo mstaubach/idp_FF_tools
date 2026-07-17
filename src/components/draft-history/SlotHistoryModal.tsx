@@ -40,11 +40,15 @@ export default function SlotHistoryModal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby="slot-history-modal-title"
         className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg dark:border-pitch-700 dark:bg-pitch-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">
+          <h2
+            id="slot-history-modal-title"
+            className="text-lg font-bold text-gray-900 dark:text-slate-100"
+          >
             Pick {slotLabel(round, slot)} through the years
           </h2>
           <button
