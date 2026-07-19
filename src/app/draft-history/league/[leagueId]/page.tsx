@@ -2,9 +2,11 @@ import DraftBoardView from "@/components/draft-history/DraftBoardView";
 import Message from "@/components/draft-history/Message";
 import {
   buildDraftHistory,
+  buildTeamDirectory,
   rookieLeagues,
   type SeasonBoard,
   type SeasonInput,
+  type TeamEntry,
 } from "@/lib/draft-history/board";
 import {
   getDraft,
@@ -26,6 +28,7 @@ export default async function DraftHistoryLeaguePage({
 
   let leagueName: string;
   let boards: SeasonBoard[];
+  let teams: TeamEntry[];
 
   let chain: Awaited<ReturnType<typeof getLeagueChain>>;
   try {
@@ -85,6 +88,7 @@ export default async function DraftHistoryLeaguePage({
     ).flat();
 
     boards = buildDraftHistory(inputs);
+    teams = buildTeamDirectory(inputs);
   } catch {
     return (
       <Message
@@ -110,10 +114,11 @@ export default async function DraftHistoryLeaguePage({
           {leagueName}
         </h1>
         <p className="text-sm text-gray-500 dark:text-slate-400">
-          Draft history — click any pick to see that slot through the years
+          Draft history — browse by season or by team; click any pick on the
+          board to see that slot through the years
         </p>
       </div>
-      <DraftBoardView boards={boards} />
+      <DraftBoardView boards={boards} teams={teams} />
     </main>
   );
 }

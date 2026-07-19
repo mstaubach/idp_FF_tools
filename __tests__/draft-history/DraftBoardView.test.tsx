@@ -49,9 +49,14 @@ const BOARD_2025: SeasonBoard = {
   ],
 };
 
+const TEAMS = [
+  { rosterId: 1, name: "Alpha" },
+  { rosterId: 2, name: "Bravo" },
+];
+
 describe("DraftBoardView", () => {
   it("shows the newest season's board initially and swaps on tab click", () => {
-    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} />);
+    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
     expect(screen.getByText("New Guy")).toBeTruthy();
     expect(screen.queryByText("Old Guy")).toBeNull();
 
@@ -62,7 +67,7 @@ describe("DraftBoardView", () => {
   });
 
   it("opens the slot history modal with entries from both seasons on cell click", () => {
-    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} />);
+    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
 
     fireEvent.click(screen.getByText("New Guy"));
 
@@ -75,7 +80,7 @@ describe("DraftBoardView", () => {
   });
 
   it("closes the modal on Escape", () => {
-    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} />);
+    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
     fireEvent.click(screen.getByText("New Guy"));
     expect(screen.getByRole("dialog")).toBeTruthy();
 
@@ -85,7 +90,7 @@ describe("DraftBoardView", () => {
   });
 
   it("closes the modal on backdrop click but not on panel click", () => {
-    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} />);
+    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
     fireEvent.click(screen.getByText("New Guy"));
 
     const dialog = screen.getByRole("dialog");
@@ -97,5 +102,30 @@ describe("DraftBoardView", () => {
     fireEvent.click(backdrop as HTMLElement);
 
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("switches to the team view and back", () => {
+    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
+    expect(screen.getByText("New Guy")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "By Team" }));
+
+    // Alpha (first team) drafted New Guy in 2026; season tabs are gone.
+    expect(screen.getByRole("button", { name: "Alpha" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "2025" })).toBeNull();
+    expect(screen.getByText("New Guy")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "By Season" }));
+    expect(screen.getByRole("button", { name: "2025" })).toBeTruthy();
+  });
+
+  it("shows the selected team's cross-season picks in team view", () => {
+    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
+    fireEvent.click(screen.getByRole("button", { name: "By Team" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+
+    // Bravo (roster 2) drafted Old Guy in 2025, nothing in 2026.
+    expect(screen.getByText("Old Guy")).toBeTruthy();
+    expect(screen.queryByText("New Guy")).toBeNull();
   });
 });
