@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { SeasonBoard } from "@/lib/draft-history/board";
-
-function slotLabel(round: number, slot: number): string {
-  return `${round}.${String(slot).padStart(2, "0")}`;
-}
+import { slotLabel, type SeasonBoard } from "@/lib/draft-history/board";
 
 export default function SlotHistoryModal({
   boards,

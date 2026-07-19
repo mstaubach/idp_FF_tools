@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDraftHistory, rookieLeagues } from "@/lib/draft-history/board";
+import { buildDraftHistory, rookieLeagues, slotLabel } from "@/lib/draft-history/board";
 import type { SeasonInput } from "@/lib/draft-history/board";
 import type { DraftPickResult, League } from "@/lib/draft-history/types";
 
@@ -121,5 +121,31 @@ describe("buildDraftHistory", () => {
   it("takes round count from draft settings", () => {
     const boards = buildDraftHistory([seasonInput("2026", [pick({})])]);
     expect(boards[0].rounds).toBe(2);
+  });
+
+  it("carries drafter and original-owner roster ids on each cell", () => {
+    const boards = buildDraftHistory([
+      seasonInput("2026", [
+        pick({ draft_slot: 2, pick_no: 2, roster_id: 1, player_id: "p2" }),
+      ]),
+    ]);
+    const cell = boards[0].cells[0];
+    expect(cell.drafterRosterId).toBe(1);
+    expect(cell.originalOwnerRosterId).toBe(2);
+  });
+
+  it("nulls originalOwnerRosterId when slot_to_roster_id lacks the slot", () => {
+    const input = seasonInput("2026", [pick({})]);
+    input.draft.slot_to_roster_id = {};
+    const [board] = buildDraftHistory([input]);
+    expect(board.cells[0].originalOwnerRosterId).toBeNull();
+    expect(board.cells[0].isTraded).toBe(false);
+  });
+});
+
+describe("slotLabel", () => {
+  it("zero-pads the slot number", () => {
+    expect(slotLabel(2, 5)).toBe("2.05");
+    expect(slotLabel(1, 12)).toBe("1.12");
   });
 });

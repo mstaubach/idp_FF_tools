@@ -22,8 +22,11 @@ export interface BoardCell {
   playerName: string;
   position: string | null;
   nflTeam: string | null;
+  drafterRosterId: number;
   drafterTeamName: string;
   // The franchise that originally owned this draft slot (slot_to_roster_id).
+  // Roster ids persist across a dynasty chain; names may change per season.
+  originalOwnerRosterId: number | null;
   originalOwnerTeamName: string;
   isTraded: boolean;
 }
@@ -41,6 +44,11 @@ export interface SeasonBoard {
 // season's draft is a rookie draft. Chain arrives newest-first.
 export function rookieLeagues(chain: League[]): League[] {
   return chain.slice(0, -1);
+}
+
+// Formats a round + slot as the conventional pick label, e.g. 2.05.
+export function slotLabel(round: number, slot: number): string {
+  return `${round}.${String(slot).padStart(2, "0")}`;
 }
 
 function cleanName(name: string | null | undefined): string {
@@ -95,7 +103,9 @@ export function buildDraftHistory(inputs: SeasonInput[]): SeasonBoard[] {
         playerName: `${first} ${last}`.trim() || p.player_id,
         position: p.metadata.position ?? null,
         nflTeam: p.metadata.team ?? null,
+        drafterRosterId: p.roster_id,
         drafterTeamName: nameOf(p.roster_id),
+        originalOwnerRosterId: originalRoster ?? null,
         originalOwnerTeamName: nameOf(originalRoster),
         isTraded: originalRoster != null && originalRoster !== p.roster_id,
       };
