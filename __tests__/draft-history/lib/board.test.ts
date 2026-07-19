@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDraftHistory, rookieLeagues, slotLabel } from "@/lib/draft-history/board";
+import { buildDraftHistory, buildTeamDirectory, rookieLeagues, slotLabel } from "@/lib/draft-history/board";
 import type { SeasonInput } from "@/lib/draft-history/board";
 import type { DraftPickResult, League } from "@/lib/draft-history/types";
 
@@ -147,5 +147,35 @@ describe("slotLabel", () => {
   it("zero-pads the slot number", () => {
     expect(slotLabel(2, 5)).toBe("2.05");
     expect(slotLabel(1, 12)).toBe("1.12");
+  });
+});
+
+describe("buildTeamDirectory", () => {
+  it("names a franchise by its newest-season name after a rename", () => {
+    const older = seasonInput("2025", []);
+    const newer = seasonInput("2026", []);
+    newer.users = [
+      {
+        user_id: "u1",
+        display_name: "Alice",
+        avatar: null,
+        metadata: { team_name: "Alpha Prime" },
+      },
+      { user_id: "u2", display_name: "Bravo", avatar: null },
+    ];
+    const teams = buildTeamDirectory([older, newer]);
+    expect(teams).toContainEqual({ rosterId: 1, name: "Alpha Prime" });
+  });
+
+  it("includes a franchise that only appears in an older season", () => {
+    const older = seasonInput("2025", []);
+    older.rosters.push({ roster_id: 3, owner_id: null });
+    const teams = buildTeamDirectory([seasonInput("2026", []), older]);
+    expect(teams).toContainEqual({ rosterId: 3, name: "Roster 3" });
+  });
+
+  it("sorts entries alphabetically by name", () => {
+    const teams = buildTeamDirectory([seasonInput("2026", [])]);
+    expect(teams.map((t) => t.name)).toEqual(["Alpha", "Bravo"]);
   });
 });

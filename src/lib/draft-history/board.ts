@@ -73,6 +73,29 @@ function rosterNames(
   return names;
 }
 
+export interface TeamEntry {
+  rosterId: number;
+  name: string;
+}
+
+// Every franchise seen across the given seasons, named by its newest season's
+// name (roster ids are stable across a dynasty chain; names may change).
+// Sorted alphabetically for display in a team selector.
+export function buildTeamDirectory(inputs: SeasonInput[]): TeamEntry[] {
+  const newestFirst = [...inputs].sort(
+    (a, b) => Number(b.league.season) - Number(a.league.season),
+  );
+  const names = new Map<number, string>();
+  for (const { users, rosters } of newestFirst) {
+    for (const [rosterId, name] of rosterNames(users, rosters)) {
+      if (!names.has(rosterId)) names.set(rosterId, name);
+    }
+  }
+  return [...names.entries()]
+    .map(([rosterId, name]) => ({ rosterId, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function buildDraftHistory(inputs: SeasonInput[]): SeasonBoard[] {
   const boards: SeasonBoard[] = [];
 
