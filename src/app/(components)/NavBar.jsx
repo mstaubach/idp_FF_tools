@@ -7,6 +7,7 @@ import ThemeToggle from "./ThemeToggle";
 import { useProfile } from "@/context/ProfileContext";
 import ProfileModal from "@/components/profile/ProfileModal";
 import LeagueSwitcher from "@/components/profile/LeagueSwitcher";
+import AuthMenu from "@/components/auth/AuthMenu";
 
 const dropdowns = [
   {
@@ -134,6 +135,8 @@ const NavBar = () => {
                 Set up profile
               </button>
             )}
+
+            <AuthMenu />
 
             <ThemeToggle />
           </div>

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**IDP Dynasty HQ** — a single Next.js 14 (App Router) app that merges four formerly separate fantasy-football tools for Sleeper IDP dynasty leagues. Everything reads from the public, read-only [Sleeper API](https://api.sleeper.app/v1) at request time. No auth, no API keys, no database — just a Sleeper league ID. The running environment therefore needs outbound network access to `api.sleeper.app`.
+**IDP Dynasty HQ** — a single Next.js (App Router) app that merges formerly separate fantasy-football tools for Sleeper IDP dynasty leagues. The tools read from the public, read-only [Sleeper API](https://api.sleeper.app/v1) at request time and work without signing in — just a Sleeper league ID. The running environment therefore needs outbound network access to `api.sleeper.app`. Optional user accounts (email + password) with server-side profile storage sit alongside the tools; they need `DATABASE_URL` (Postgres) and `AUTH_SECRET` env vars, and the whole rest of the site must keep working when those are unset.
 
 Tools (each a route under `src/app/`): `/standings`, `/trade-tracker`, `/idp-checker`, `/injury-tracker` (placeholder), plus the `/` landing page.
 
@@ -17,6 +17,9 @@ npm run lint        # next lint (eslint-config-next)
 npm run typecheck   # tsc --noEmit
 npm test            # vitest run (single pass)
 npm run test:watch  # vitest watch mode
+npm run db:generate # drizzle-kit: regenerate SQL migrations from src/lib/db/schema.ts
+npm run db:migrate  # drizzle-kit: apply migrations (needs DATABASE_URL)
+npm run db:push     # drizzle-kit: push schema directly (dev only, needs DATABASE_URL)
 ```
 
 Run a single test file: `npx vitest run __tests__/idp-checker/lib/matcher.test.ts`. Filter by name: `npx vitest run -t "fuzzy"`.
@@ -45,6 +48,17 @@ The tools cache Sleeper calls differently — match the surrounding tool's appro
 
 - **trade-tracker `resolve.ts`** is the heart of that tool. `buildLeagueTrades` walks the `previous_league_id` chain (`getLeagueChain`) to gather every season of a dynasty league, then does a two-pass build: first index every completed draft selection keyed by `${season}:${round}:${originalRoster}` (the original roster comes from `slot_to_roster_id`, so a traded pick still maps back to its origin franchise), then resolve each traded pick to its outcome (`drafted` / `pending` / `unknown`). Output drives a Sankey-style giver → asset → outcome view.
 - **idp-checker `matcher.ts`** does two-pass fuzzy matching with Fuse.js: a strict full-name pass, then a last-name-focused fallback for abbreviated first names (e.g. "Pat Queen"), with position-group/team tiebreakers. IDP positions are filtered in `sleeper.ts` via `IDP_POSITIONS`.
+
+### Accounts, auth, and data storage
+
+Email + password accounts via Auth.js v5 (Credentials provider, **JWT sessions** — no DB reads per request) with Postgres via Drizzle ORM. Layering:
+
+- `src/lib/db/` — Drizzle schema (`users` table) and a **lazy** client (`getDb()`): nothing connects at import time, so build and Sleeper-only deployments never need `DATABASE_URL`. Schema changes go through `npm run db:generate` → commit the SQL in `drizzle/`.
+- `src/lib/auth/` — pure, tested logic: zod schemas (`validation.ts`), bcrypt wrappers (`passwords.ts`), plan gating (`entitlements.ts`), and the import-light Auth.js config (`config.ts`). Heavy imports (db, bcrypt) live only in `src/auth.ts`, which adds the Credentials provider and exports `handlers`/`auth`/`signIn`/`signOut`.
+- Routes: `/api/auth/[...nextauth]` (Auth.js), `/api/auth/signup`, `/api/profile` (GET/PUT of the user's Sleeper profile JSON). Pages: `/login`, `/signup`, `/account` (server component, `force-dynamic`, redirects when signed out).
+- `src/proxy.ts` gates members-only routes (currently `/account`) by reading the session JWT with `getToken` — add new protected prefixes to both `PROTECTED_PREFIXES` and the matcher. If `AUTH_SECRET` is unset, visitors are treated as signed out and the rest of the site is unaffected.
+- The browser-local Sleeper profile (`ProfileContext`, localStorage) stays the source of truth for the tools; signed-in users sync it explicitly to/from `users.profile` (jsonb) on `/account` — same `Profile` shape on both sides, validated by `profileSchema`.
+- **Paid access seam**: `users.plan` (`free`/`pro`) flows into the session (`session.user.plan`); gate features with `canAccess(plan, feature)` from `src/lib/auth/entitlements.ts`. A future payment webhook only has to flip `users.plan`.
 
 ## Conventions
 

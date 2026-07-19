@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 // Rate limiting for the routes that fan out to many upstream Sleeper calls (the
 // API routes and each tool's dynamic [leagueId] pages — the standings /
@@ -65,7 +66,42 @@ function overPerIpLimit(key: string, now: number): boolean {
   return false;
 }
 
-export function proxy(req: NextRequest): NextResponse {
+// Signed-in gate for members-only pages. Reads the Auth.js session JWT
+// straight from the cookie; if AUTH_SECRET is unset (account features not
+// configured) every visitor is treated as signed out, and the rest of the
+// site is unaffected. The /account page re-checks the session server-side,
+// so this redirect is UX (preserving callbackUrl), not the only line of
+// defense. Add future members-only tool routes to both PROTECTED_PREFIXES
+// and the matcher below.
+const PROTECTED_PREFIXES = ["/account"];
+
+async function requireSession(req: NextRequest): Promise<NextResponse> {
+  const secret = process.env.AUTH_SECRET;
+  let signedIn = false;
+  if (secret) {
+    try {
+      const token = await getToken({
+        req,
+        secret,
+        secureCookie: req.nextUrl.protocol === "https:",
+      });
+      signedIn = token !== null;
+    } catch {
+      signedIn = false;
+    }
+  }
+  if (!signedIn) {
+    const login = new URL("/login", req.nextUrl.origin);
+    login.searchParams.set(
+      "callbackUrl",
+      req.nextUrl.pathname + req.nextUrl.search
+    );
+    return NextResponse.redirect(login);
+  }
+  return NextResponse.next();
+}
+
+export async function proxy(req: NextRequest): Promise<NextResponse> {
   const now = Date.now();
   // Evaluate both before branching so each window's counter is incremented even
   // when the other already trips (no short-circuit skipping a count).
@@ -78,6 +114,11 @@ export function proxy(req: NextRequest): NextResponse {
       headers: { "Retry-After": "60", "Content-Type": "text/plain" },
     });
   }
+
+  if (PROTECTED_PREFIXES.some((p) => req.nextUrl.pathname.startsWith(p))) {
+    return requireSession(req);
+  }
+
   return NextResponse.next();
 }
 
@@ -88,5 +129,6 @@ export const config = {
     "/trade-tracker/:path*",
     "/roster-management/:path*",
     "/taxi-filler/:path*",
+    "/account/:path*",
   ],
 };

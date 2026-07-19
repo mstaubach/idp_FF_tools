@@ -14,8 +14,10 @@ a shared navigation bar and a landing page that introduces each tool.
 | `/idp-checker` | **IDP Availability Checker** | Paste rankings or upload a CSV and check which IDP players are still available in your Sleeper league. Fuzzy name matching, position filters, and waiver info. |
 | `/injury-tracker` | **Injury Tracker** | Placeholder — coming soon. |
 
-All tools read from the public, read-only [Sleeper API](https://docs.sleeper.com/).
-No login, API keys, or database — just a league ID.
+All tools read from the public, read-only [Sleeper API](https://docs.sleeper.com/)
+and work without signing in — just a league ID. Optionally, users can create an
+account to store their Sleeper profile (username + saved leagues) server-side;
+see [Accounts](#accounts-optional) below.
 
 ## Project layout
 
@@ -62,6 +64,24 @@ npm run test:watch # vitest in watch mode
 > Note: the standings, trade tracker, and IDP checker call `api.sleeper.app` at
 > request time, so the running environment needs outbound network access to that
 > host.
+
+## Accounts (optional)
+
+The Sleeper tools work with zero configuration. Signup/login and server-side
+profile storage additionally need a Postgres database and a session secret:
+
+```bash
+cp .env.example .env.local
+# set DATABASE_URL to any Postgres (Neon, Vercel Postgres, Supabase, local)
+# set AUTH_SECRET, e.g.: openssl rand -base64 32
+npm run db:migrate   # apply the SQL migrations in drizzle/
+```
+
+Auth is email + password (Auth.js credentials provider, JWT sessions).
+Signed-in users can sync their browser profile to their account at `/account`.
+Each user row carries a `plan` (`free` / `pro`) that feature gates read via
+`src/lib/auth/entitlements.ts` — the hook for paid access later. Without the
+env vars the site runs exactly as before; only the account routes are inert.
 
 ## Deploying to Vercel
 
