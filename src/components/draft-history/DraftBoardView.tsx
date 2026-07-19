@@ -22,6 +22,7 @@ export default function DraftBoardView({
 }) {
   const [view, setView] = useState<"season" | "team">("season");
   const [seasonIdx, setSeasonIdx] = useState(0);
+  const [teamIdx, setTeamIdx] = useState(0);
   const [selected, setSelected] = useState<{ round: number; slot: number } | null>(
     null,
   );
@@ -146,7 +147,12 @@ export default function DraftBoardView({
           )}
         </>
       ) : (
-        <TeamHistoryView boards={boards} teams={teams} />
+        <TeamHistoryView
+          boards={boards}
+          teams={teams}
+          teamIdx={teamIdx}
+          onSelectTeam={setTeamIdx}
+        />
       )}
     </div>
   );

@@ -128,4 +128,18 @@ describe("DraftBoardView", () => {
     expect(screen.getByText("Old Guy")).toBeTruthy();
     expect(screen.queryByText("New Guy")).toBeNull();
   });
+
+  it("persists the selected team across a toggle to season view and back", () => {
+    render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
+    fireEvent.click(screen.getByRole("button", { name: "By Team" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+    expect(screen.getByText("Old Guy")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "By Season" }));
+    fireEvent.click(screen.getByRole("button", { name: "By Team" }));
+
+    // Bravo should still be selected; its pick still shows.
+    expect(screen.getByText("Old Guy")).toBeTruthy();
+    expect(screen.queryByText("New Guy")).toBeNull();
+  });
 });

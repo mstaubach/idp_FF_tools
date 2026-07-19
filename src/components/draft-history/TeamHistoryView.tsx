@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   slotLabel,
   type SeasonBoard,
@@ -10,20 +9,25 @@ import {
 export default function TeamHistoryView({
   boards,
   teams,
+  teamIdx,
+  onSelectTeam,
 }: {
   boards: SeasonBoard[];
   teams: TeamEntry[];
+  teamIdx: number;
+  onSelectTeam: (i: number) => void;
 }) {
-  const [teamIdx, setTeamIdx] = useState(0);
-  const team = teams[teamIdx];
+  const team = teams[teamIdx] as TeamEntry | undefined;
 
   // Boards arrive newest-first; within a season, order by pick number.
-  const rows = boards.flatMap((b) =>
-    b.cells
-      .filter((c) => c.drafterRosterId === team.rosterId)
-      .sort((a, z) => a.pickNo - z.pickNo)
-      .map((cell) => ({ season: b.season, cell })),
-  );
+  const rows = team
+    ? boards.flatMap((b) =>
+        b.cells
+          .filter((c) => c.drafterRosterId === team.rosterId)
+          .sort((a, z) => a.pickNo - z.pickNo)
+          .map((cell) => ({ season: b.season, cell })),
+      )
+    : [];
 
   const headerClass = "px-3 py-2 font-semibold text-gray-500 dark:text-slate-400";
 
@@ -33,7 +37,7 @@ export default function TeamHistoryView({
         {teams.map((t, i) => (
           <button
             key={t.rosterId}
-            onClick={() => setTeamIdx(i)}
+            onClick={() => onSelectTeam(i)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
               i === teamIdx
                 ? "bg-amber-400 text-gray-900"

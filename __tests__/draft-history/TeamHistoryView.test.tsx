@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import TeamHistoryView from "@/components/draft-history/TeamHistoryView";
 import type { BoardCell, SeasonBoard, TeamEntry } from "@/lib/draft-history/board";
@@ -36,7 +36,6 @@ const BOARDS: SeasonBoard[] = [
     slots: 2,
     slotOwners: ["Alpha", "Bravo"],
     cells: [
-      cell({ playerName: "New Guy" }),
       cell({
         slot: 2,
         pickNo: 2,
@@ -47,6 +46,7 @@ const BOARDS: SeasonBoard[] = [
         originalOwnerTeamName: "Bravo",
         isTraded: true,
       }),
+      cell({ playerName: "New Guy" }),
     ],
   },
   {
@@ -60,7 +60,14 @@ const BOARDS: SeasonBoard[] = [
 
 describe("TeamHistoryView", () => {
   it("shows the first team's picks across all seasons, newest first", () => {
-    render(<TeamHistoryView boards={BOARDS} teams={TEAMS} />);
+    render(
+      <TeamHistoryView
+        boards={BOARDS}
+        teams={TEAMS}
+        teamIdx={0}
+        onSelectTeam={() => {}}
+      />,
+    );
     const rows = screen.getAllByRole("row").slice(1); // drop header row
     expect(rows.map((r) => r.textContent)).toEqual([
       expect.stringContaining("New Guy"),
@@ -72,7 +79,14 @@ describe("TeamHistoryView", () => {
   });
 
   it("formats picks with slotLabel and marks trade-acquired picks with a via note", () => {
-    render(<TeamHistoryView boards={BOARDS} teams={TEAMS} />);
+    render(
+      <TeamHistoryView
+        boards={BOARDS}
+        teams={TEAMS}
+        teamIdx={0}
+        onSelectTeam={() => {}}
+      />,
+    );
     const tradeRow = screen.getByText("Trade Guy").closest("tr") as HTMLElement;
     expect(within(tradeRow).getByText("1.02")).toBeTruthy();
     expect(within(tradeRow).getByText("via Bravo")).toBeTruthy();
@@ -81,10 +95,42 @@ describe("TeamHistoryView", () => {
     expect(within(ownRow).queryByText(/via/)).toBeNull();
   });
 
-  it("switches teams on pill click and shows an empty state for a team with no picks", () => {
-    render(<TeamHistoryView boards={BOARDS} teams={TEAMS} />);
+  it("calls onSelectTeam with the clicked team's index", () => {
+    const onSelectTeam = vi.fn();
+    render(
+      <TeamHistoryView
+        boards={BOARDS}
+        teams={TEAMS}
+        teamIdx={0}
+        onSelectTeam={onSelectTeam}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+    expect(onSelectTeam).toHaveBeenCalledWith(1);
+  });
+
+  it("shows an empty state for a team with no picks", () => {
+    render(
+      <TeamHistoryView
+        boards={BOARDS}
+        teams={TEAMS}
+        teamIdx={1}
+        onSelectTeam={() => {}}
+      />,
+    );
     expect(screen.queryByText("New Guy")).toBeNull();
+    expect(screen.getByText("No rookie picks yet.")).toBeTruthy();
+  });
+
+  it("renders the empty state without crashing when teams is empty", () => {
+    render(
+      <TeamHistoryView
+        boards={BOARDS}
+        teams={[]}
+        teamIdx={0}
+        onSelectTeam={() => {}}
+      />,
+    );
     expect(screen.getByText("No rookie picks yet.")).toBeTruthy();
   });
 });
