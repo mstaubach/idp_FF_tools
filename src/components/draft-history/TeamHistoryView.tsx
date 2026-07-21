@@ -33,20 +33,25 @@ export default function TeamHistoryView({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1">
-        {teams.map((t, i) => (
-          <button
-            key={t.rosterId}
-            onClick={() => onSelectTeam(i)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-              i === teamIdx
-                ? "bg-amber-400 text-gray-900"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-pitch-800 dark:hover:text-white"
-            }`}
-          >
-            {t.name}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <label
+          htmlFor="team-picker"
+          className="text-sm text-gray-600 dark:text-slate-400"
+        >
+          Team:
+        </label>
+        <select
+          id="team-picker"
+          value={teamIdx}
+          onChange={(e) => onSelectTeam(Number(e.target.value))}
+          className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-green-600 dark:border-pitch-700 dark:bg-pitch-900 dark:text-slate-100"
+        >
+          {teams.map((t, i) => (
+            <option key={t.rosterId} value={i}>
+              {t.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {rows.length === 0 ? (

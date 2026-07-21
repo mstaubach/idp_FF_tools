@@ -64,13 +64,13 @@ export default function SlotHistoryModal({
               <span className="min-w-0">
                 <span className="block font-semibold text-gray-900 dark:text-slate-100">
                   {cell.playerName}
-                  {cell.position && (
-                    <span className="ml-1.5 text-xs font-medium text-green-600 dark:text-green-400">
-                      {cell.position}
-                      {cell.nflTeam ? ` · ${cell.nflTeam}` : ""}
-                    </span>
-                  )}
                 </span>
+                {cell.position && (
+                  <span className="block text-xs font-medium text-green-600 dark:text-green-400">
+                    {cell.position}
+                    {cell.nflTeam ? ` · ${cell.nflTeam}` : ""}
+                  </span>
+                )}
                 <span className="block text-xs text-gray-500 dark:text-slate-400">
                   {cell.drafterTeamName}
                   {cell.isTraded ? ` (via ${cell.originalOwnerTeamName})` : ""}
