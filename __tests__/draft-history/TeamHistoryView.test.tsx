@@ -95,7 +95,7 @@ describe("TeamHistoryView", () => {
     expect(within(ownRow).queryByText(/via/)).toBeNull();
   });
 
-  it("calls onSelectTeam with the clicked team's index", () => {
+  it("calls onSelectTeam with the picked team's index on change", () => {
     const onSelectTeam = vi.fn();
     render(
       <TeamHistoryView
@@ -105,8 +105,20 @@ describe("TeamHistoryView", () => {
         onSelectTeam={onSelectTeam}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
     expect(onSelectTeam).toHaveBeenCalledWith(1);
+  });
+
+  it("reflects the selected team as the picker's value", () => {
+    render(
+      <TeamHistoryView
+        boards={BOARDS}
+        teams={TEAMS}
+        teamIdx={1}
+        onSelectTeam={() => {}}
+      />,
+    );
+    expect(screen.getByRole("combobox")).toHaveValue("1");
   });
 
   it("shows an empty state for a team with no picks", () => {

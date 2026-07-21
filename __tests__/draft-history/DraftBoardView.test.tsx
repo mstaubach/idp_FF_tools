@@ -111,7 +111,7 @@ describe("DraftBoardView", () => {
     fireEvent.click(screen.getByRole("button", { name: "By Team" }));
 
     // Alpha (first team) drafted New Guy in 2026; season tabs are gone.
-    expect(screen.getByRole("button", { name: "Alpha" })).toBeTruthy();
+    expect(screen.getByRole("combobox")).toHaveValue("0");
     expect(screen.queryByRole("button", { name: "2025" })).toBeNull();
     expect(screen.getByText("New Guy")).toBeTruthy();
 
@@ -122,7 +122,7 @@ describe("DraftBoardView", () => {
   it("shows the selected team's cross-season picks in team view", () => {
     render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
     fireEvent.click(screen.getByRole("button", { name: "By Team" }));
-    fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
 
     // Bravo (roster 2) drafted Old Guy in 2025, nothing in 2026.
     expect(screen.getByText("Old Guy")).toBeTruthy();
@@ -132,7 +132,7 @@ describe("DraftBoardView", () => {
   it("persists the selected team across a toggle to season view and back", () => {
     render(<DraftBoardView boards={[BOARD_2026, BOARD_2025]} teams={TEAMS} />);
     fireEvent.click(screen.getByRole("button", { name: "By Team" }));
-    fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
     expect(screen.getByText("Old Guy")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "By Season" }));
