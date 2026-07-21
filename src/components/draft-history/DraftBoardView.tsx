@@ -108,13 +108,13 @@ export default function DraftBoardView({
                               </span>
                               <span className="block truncate text-xs font-semibold text-gray-900 dark:text-slate-100">
                                 {cell.playerName}
-                                {cell.position && (
-                                  <span className="ml-1.5 text-xs font-medium text-green-600 dark:text-green-400">
-                                    {cell.position}
-                                    {cell.nflTeam ? ` · ${cell.nflTeam}` : ""}
-                                  </span>
-                                )}
                               </span>
+                              {cell.position && (
+                                <span className="block truncate text-xs font-medium text-green-600 dark:text-green-400">
+                                  {cell.position}
+                                  {cell.nflTeam ? ` · ${cell.nflTeam}` : ""}
+                                </span>
+                              )}
                               {cell.isTraded && (
                                 <span className="block truncate text-xs text-amber-600 dark:text-amber-400">
                                   via {cell.originalOwnerTeamName}
