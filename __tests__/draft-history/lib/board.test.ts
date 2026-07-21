@@ -141,6 +141,15 @@ describe("buildDraftHistory", () => {
     expect(board.cells[0].originalOwnerRosterId).toBeNull();
     expect(board.cells[0].isTraded).toBe(false);
   });
+
+  it("exposes the original owner's roster id per slot column, nulling gaps", () => {
+    const input = seasonInput("2026", [pick({})]);
+    input.rosters.push({ roster_id: 3, owner_id: null });
+    input.draft.slot_to_roster_id = { "1": 1, "2": 2 };
+    input.league.total_rosters = 3;
+    const [board] = buildDraftHistory([input]);
+    expect(board.slotOwnerRosterIds).toEqual([1, 2, null]);
+  });
 });
 
 describe("slotLabel", () => {

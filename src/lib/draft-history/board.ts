@@ -37,6 +37,10 @@ export interface SeasonBoard {
   slots: number;
   // Team name owning each slot column this season; index 0 = slot 1.
   slotOwners: string[];
+  // Roster id owning each slot column this season, parallel to slotOwners;
+  // null when slot_to_roster_id lacks the slot. Stable across a dynasty
+  // chain, unlike slotOwners' names.
+  slotOwnerRosterIds: (number | null)[];
   cells: BoardCell[];
 }
 
@@ -114,6 +118,10 @@ export function buildDraftHistory(inputs: SeasonInput[]): SeasonBoard[] {
     const slotOwners = Array.from({ length: slots }, (_, i) =>
       nameOf(slotToRoster[String(i + 1)]),
     );
+    const slotOwnerRosterIds = Array.from(
+      { length: slots },
+      (_, i) => slotToRoster[String(i + 1)] ?? null,
+    );
 
     const cells: BoardCell[] = picks.map((p) => {
       const originalRoster = slotToRoster[String(p.draft_slot)];
@@ -134,7 +142,14 @@ export function buildDraftHistory(inputs: SeasonInput[]): SeasonBoard[] {
       };
     });
 
-    boards.push({ season: draft.season, rounds, slots, slotOwners, cells });
+    boards.push({
+      season: draft.season,
+      rounds,
+      slots,
+      slotOwners,
+      slotOwnerRosterIds,
+      cells,
+    });
   }
 
   boards.sort((a, b) => Number(b.season) - Number(a.season));

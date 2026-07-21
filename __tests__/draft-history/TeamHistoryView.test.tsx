@@ -35,6 +35,7 @@ const BOARDS: SeasonBoard[] = [
     rounds: 1,
     slots: 2,
     slotOwners: ["Alpha", "Bravo"],
+    slotOwnerRosterIds: [1, 2],
     cells: [
       cell({
         slot: 2,
@@ -54,6 +55,7 @@ const BOARDS: SeasonBoard[] = [
     rounds: 1,
     slots: 2,
     slotOwners: ["Alpha", "Bravo"],
+    slotOwnerRosterIds: [1, 2],
     cells: [cell({ playerName: "Old Guy" })],
   },
 ];
