@@ -106,7 +106,7 @@ export default function DraftBoardView({
                               <span className="block truncate font-mono text-xs text-gray-500 dark:text-slate-400">
                                 {slotLabel(cell.round, cell.slot)}
                               </span>
-                              <span className="block truncate font-semibold text-gray-900 dark:text-slate-100">
+                              <span className="block truncate text-xs font-semibold text-gray-900 dark:text-slate-100">
                                 {cell.playerName}
                                 {cell.position && (
                                   <span className="ml-1.5 text-xs font-medium text-green-600 dark:text-green-400">
