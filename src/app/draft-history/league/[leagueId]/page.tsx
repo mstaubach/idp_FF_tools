@@ -3,7 +3,7 @@ import Message from "@/components/draft-history/Message";
 import {
   buildDraftHistory,
   buildTeamDirectory,
-  rookieLeagues,
+  selectRookieDrafts,
   type SeasonBoard,
   type SeasonInput,
   type TeamEntry,
@@ -53,20 +53,13 @@ export default async function DraftHistoryLeaguePage({
 
   leagueName = chain[0].name;
 
-  const rookies = rookieLeagues(chain);
-  if (rookies.length === 0) {
-    return (
-      <Message
-        title="No rookie drafts yet"
-        body="This league is still in its startup season — check back after its first rookie draft."
-      />
-    );
-  }
-
   try {
-    const inputs: SeasonInput[] = (
+    // Fetch every draft in the chain, then drop the startup. Startup and
+    // rookie drafts can share a season, so the split is per-draft, not per-
+    // league — filtering leagues first would hide a same-season rookie draft.
+    const allDrafts: SeasonInput[] = (
       await Promise.all(
-        rookies.map(async (league) => {
+        chain.map(async (league) => {
           const [users, rosters, drafts] = await Promise.all([
             getUsers(league.league_id),
             getRosters(league.league_id),
@@ -87,6 +80,7 @@ export default async function DraftHistoryLeaguePage({
       )
     ).flat();
 
+    const inputs = selectRookieDrafts(allDrafts);
     boards = buildDraftHistory(inputs);
     teams = buildTeamDirectory(inputs);
   } catch {
