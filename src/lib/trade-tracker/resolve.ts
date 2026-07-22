@@ -127,30 +127,69 @@ function playerName(p: SleeperPlayer | undefined, fallbackId: string): string {
   return name || fallbackId;
 }
 
+// A selection plus the pool of the draft it came from, so same-season drafts
+// can be told apart when resolving a traded pick.
+interface IndexedPick {
+  pick: DraftPickResult;
+  rookieOnly: boolean;
+}
+
 // Index every completed draft selection by pickKey(season, round, originalRoster).
 // The original roster is derived from the draft slot, so a pick that changed
 // hands still maps back to the franchise whose slot it was.
+//
+// A startup that splits its initial draft from its rookie draft puts two
+// selections in one season under the same key, so each key holds every
+// candidate; resolvePick decides between them.
 function indexDraftPicks(
   draft: Draft,
   picks: DraftPickResult[],
-  into: Map<string, DraftPickResult>,
+  into: Map<string, IndexedPick[]>,
 ): void {
+  const rookieOnly = draft.settings?.player_type === 1;
   for (const pick of picks) {
     const originalRoster = draft.slot_to_roster_id?.[String(pick.draft_slot)];
     if (originalRoster == null) continue;
-    into.set(pickKey(draft.season, pick.round, originalRoster), pick);
+    const key = pickKey(draft.season, pick.round, originalRoster);
+    const candidates = into.get(key);
+    if (candidates) candidates.push({ pick, rookieOnly });
+    else into.set(key, [{ pick, rookieOnly }]);
   }
+}
+
+// Choose which of a key's candidate selections a traded pick refers to.
+//
+// The deciding signal is the outcome itself: a pick that changed hands was, by
+// definition, used by a franchise other than the one whose slot it was. When
+// a startup and a rookie draft both hold that round, only one shows a drafter
+// different from the original owner, and that is the pick that was traded.
+// This holds even for picks traded several times, where no single
+// transaction's owner_id matches the eventual drafter.
+function chooseCandidate(
+  candidates: IndexedPick[],
+  originalRoster: number,
+): DraftPickResult | undefined {
+  if (candidates.length <= 1) return candidates[0]?.pick;
+  const changedHands = candidates.filter(
+    (c) => c.pick.roster_id !== originalRoster,
+  );
+  if (changedHands.length === 1) return changedHands[0].pick;
+  // Still ambiguous (or the pick never moved): traded picks in a dynasty are
+  // rookie picks, so prefer a rookies-only draft when one is present.
+  const pool = changedHands.length > 0 ? changedHands : candidates;
+  return (pool.find((c) => c.rookieOnly) ?? pool[0]).pick;
 }
 
 function resolvePick(
   season: string,
   round: number,
   originalRoster: number,
-  draftIndex: Map<string, DraftPickResult>,
+  draftIndex: Map<string, IndexedPick[]>,
   seasonsWithDraft: Set<string>,
   players: Record<string, SleeperPlayer>,
 ): PickOutcome {
-  const match = draftIndex.get(pickKey(season, round, originalRoster));
+  const candidates = draftIndex.get(pickKey(season, round, originalRoster));
+  const match = candidates && chooseCandidate(candidates, originalRoster);
   if (match) {
     const metaName = [match.metadata?.first_name, match.metadata?.last_name]
       .filter(Boolean)
@@ -175,7 +214,7 @@ function buildFlows(
   tx: Transaction,
   names: Map<number, string>,
   players: Record<string, SleeperPlayer>,
-  draftIndex: Map<string, DraftPickResult>,
+  draftIndex: Map<string, IndexedPick[]>,
   seasonsWithDraft: Set<string>,
 ): TradeFlow[] {
   const flows: TradeFlow[] = [];
@@ -232,7 +271,7 @@ function buildTradeView(
   league: League,
   names: Map<number, string>,
   players: Record<string, SleeperPlayer>,
-  draftIndex: Map<string, DraftPickResult>,
+  draftIndex: Map<string, IndexedPick[]>,
   seasonsWithDraft: Set<string>,
 ): TradeView {
   const flows = buildFlows(tx, names, players, draftIndex, seasonsWithDraft);
@@ -270,7 +309,7 @@ function buildFaabAsset(amount: number | null | undefined): ReceivedAsset {
 function buildPickAsset(
   pick: TradedDraftPick,
   names: Map<number, string>,
-  draftIndex: Map<string, DraftPickResult>,
+  draftIndex: Map<string, IndexedPick[]>,
   seasonsWithDraft: Set<string>,
   players: Record<string, SleeperPlayer>,
 ): ReceivedAsset {
@@ -304,7 +343,7 @@ export async function buildLeagueTrades(
 
   // Completed draft selections across every season in the chain. Built before
   // any trades are processed so picks resolve regardless of season ordering.
-  const draftIndex = new Map<string, DraftPickResult>();
+  const draftIndex = new Map<string, IndexedPick[]>();
   const seasonsWithDraft = new Set<string>();
   // roster -> team name, per league (roster_ids are league-scoped).
   const rosterNamesByLeague = new Map<string, Map<number, string>>();

@@ -66,6 +66,12 @@ export interface Draft {
   status: string;
   // draft slot (as string) -> roster_id of the franchise that owns that slot
   slot_to_roster_id: Record<string, number>;
+  settings?: {
+    rounds?: number;
+    // 0 = all players, 1 = rookies only, 2 = veterans only. Startups that run
+    // a separate initial draft set this; most leagues leave it 0.
+    player_type?: number;
+  };
 }
 
 // A completed pick from /draft/{id}/picks
