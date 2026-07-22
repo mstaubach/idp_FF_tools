@@ -40,10 +40,50 @@ export interface SeasonBoard {
   cells: BoardCell[];
 }
 
-// The oldest season in a dynasty chain is the startup draft; every later
-// season's draft is a rookie draft. Chain arrives newest-first.
-export function rookieLeagues(chain: League[]): League[] {
-  return chain.slice(0, -1);
+// Sleeper's draft pool values (Draft.settings.player_type).
+const POOL_ROOKIES_ONLY = 1;
+const POOL_VETERANS_ONLY = 2;
+
+// Split the drafts of a dynasty chain into startup and rookie drafts.
+//
+// The season a draft belongs to is not enough on its own: many startups run a
+// veterans-only initial draft AND that year's rookie draft in the same season,
+// so "oldest season = startup" would hide a real rookie draft. Resolution
+// order, most to least trustworthy:
+//
+//   1. player_type states the pool outright (rookies-only / veterans-only).
+//   2. Otherwise the longest draft of the chain's oldest season is the
+//      startup — a startup fills whole rosters, a rookie draft a few rounds.
+//
+// Anything not identified as the startup is treated as a rookie draft.
+export function selectRookieDrafts(inputs: SeasonInput[]): SeasonInput[] {
+  if (inputs.length === 0) return [];
+
+  const poolOf = (i: SeasonInput) => i.draft.settings?.player_type;
+  const roundsOf = (i: SeasonInput) =>
+    i.draft.settings?.rounds ??
+    (i.picks.length > 0 ? Math.max(...i.picks.map((p) => p.round)) : 0);
+
+  // Drafts whose pool is stated need no guessing.
+  const undecided = inputs.filter((i) => {
+    const pool = poolOf(i);
+    return pool !== POOL_ROOKIES_ONLY && pool !== POOL_VETERANS_ONLY;
+  });
+
+  // Among the undecided, only the oldest season can hold the startup, and only
+  // if no draft has already declared itself the veterans-only startup.
+  let startup: SeasonInput | null = null;
+  if (undecided.length > 0 && !inputs.some((i) => poolOf(i) === POOL_VETERANS_ONLY)) {
+    const oldest = Math.min(...inputs.map((i) => Number(i.league.season)));
+    for (const input of undecided) {
+      if (Number(input.league.season) !== oldest) continue;
+      if (!startup || roundsOf(input) > roundsOf(startup)) startup = input;
+    }
+  }
+
+  return inputs.filter(
+    (i) => i !== startup && poolOf(i) !== POOL_VETERANS_ONLY,
+  );
 }
 
 // Formats a round + slot as the conventional pick label, e.g. 2.05.

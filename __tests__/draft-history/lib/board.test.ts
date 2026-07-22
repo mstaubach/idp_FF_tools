@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDraftHistory, buildTeamDirectory, rookieLeagues, slotLabel } from "@/lib/draft-history/board";
+import { buildDraftHistory, buildTeamDirectory, selectRookieDrafts, slotLabel } from "@/lib/draft-history/board";
 import type { SeasonInput } from "@/lib/draft-history/board";
 import type { DraftPickResult, League } from "@/lib/draft-history/types";
 
@@ -26,18 +26,28 @@ function pick(overrides: Partial<DraftPickResult>): DraftPickResult {
   };
 }
 
+interface DraftShape {
+  id?: string;
+  rounds?: number;
+  playerType?: number;
+}
+
 // Two-team league: roster 1 owned by Alice (team name "Alpha ", padded the way
 // Sleeper sometimes returns it), roster 2 owned by Bravo (no team_name set).
-function seasonInput(season: string, picks: DraftPickResult[]): SeasonInput {
+function seasonInput(
+  season: string,
+  picks: DraftPickResult[],
+  shape: DraftShape = {},
+): SeasonInput {
   return {
     league: league(season),
     draft: {
-      draft_id: `D${season}`,
+      draft_id: shape.id ?? `D${season}`,
       season,
       league_id: `L${season}`,
       status: "complete",
       slot_to_roster_id: { "1": 1, "2": 2 },
-      settings: { rounds: 2 },
+      settings: { rounds: shape.rounds ?? 2, player_type: shape.playerType },
     },
     picks,
     users: [
@@ -51,14 +61,41 @@ function seasonInput(season: string, picks: DraftPickResult[]): SeasonInput {
   };
 }
 
-describe("rookieLeagues", () => {
-  it("drops the startup (oldest) season from a newest-first chain", () => {
-    const chain = [league("2026"), league("2025"), league("2024")];
-    expect(rookieLeagues(chain).map((l) => l.season)).toEqual(["2026", "2025"]);
+describe("selectRookieDrafts", () => {
+  const ids = (inputs: SeasonInput[]) => inputs.map((i) => i.draft.draft_id);
+
+  // One draft per season, no player_type set: the oldest season is the startup.
+  it("drops the startup season when each season has a single draft", () => {
+    const inputs = [
+      seasonInput("2026", [pick({})]),
+      seasonInput("2025", [pick({})]),
+      seasonInput("2024", [pick({})]),
+    ];
+    expect(ids(selectRookieDrafts(inputs))).toEqual(["D2026", "D2025"]);
   });
 
-  it("returns nothing for a league still in its startup season", () => {
-    expect(rookieLeagues([league("2026")])).toEqual([]);
+  // The "Welcome to the Jungle" shape: a veterans-only startup and a
+  // rookies-only draft in the same season. player_type says which is which.
+  it("keeps the rookie draft when startup and rookie share one season", () => {
+    const inputs = [
+      seasonInput("2026", [pick({})], { id: "startup", rounds: 41, playerType: 2 }),
+      seasonInput("2026", [pick({})], { id: "rookie", rounds: 6, playerType: 1 }),
+    ];
+    expect(ids(selectRookieDrafts(inputs))).toEqual(["rookie"]);
+  });
+
+  // Same split, but the commissioner left player_type at its default. Fall
+  // back to size: the long draft is the startup.
+  it("treats the longest draft of the oldest season as the startup", () => {
+    const inputs = [
+      seasonInput("2026", [pick({})], { id: "startup", rounds: 41 }),
+      seasonInput("2026", [pick({})], { id: "rookie", rounds: 6 }),
+    ];
+    expect(ids(selectRookieDrafts(inputs))).toEqual(["rookie"]);
+  });
+
+  it("returns nothing for a league whose only draft is its startup", () => {
+    expect(selectRookieDrafts([seasonInput("2026", [pick({})])])).toEqual([]);
   });
 });
 

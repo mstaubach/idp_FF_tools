@@ -34,6 +34,11 @@ export interface Draft {
   slot_to_roster_id?: Record<string, number> | null;
   settings?: {
     rounds?: number;
+    // Sleeper's draft pool: 0 = all players, 1 = rookies only, 2 = veterans
+    // only. Startups that split the initial draft from the rookie draft set
+    // this (2 for the startup, 1 for the rookie draft); leagues that don't
+    // bother leave it 0, so it is a hint, not a guarantee.
+    player_type?: number;
   };
 }
 
