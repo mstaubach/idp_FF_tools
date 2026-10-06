@@ -309,7 +309,10 @@ export default function DepthChartTable({
           Reset plan
         </button>
       )}
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      {/* A fixed id keeps dnd-kit's aria-describedby stable between the server
+          render and hydration; without it dnd-kit uses a module-level counter
+          that keeps climbing on the server. */}
+      <DndContext id="roster-depth-chart" sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-gray-200 dark:border-pitch-700">
             <table className="w-full border-collapse text-sm">
