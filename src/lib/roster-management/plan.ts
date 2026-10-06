@@ -4,29 +4,36 @@ export type PlanSection = DepthChartSection["label"];
 
 const PLAN_SECTIONS: readonly PlanSection[] = ["Starting", "Bench", "Taxi", "IR"];
 
+export type PickPlacement = { section: PlanSection; position: string };
+
 // A what-if layer over the live Sleeper roster, kept per roster in the
-// browser. Only differences from Sleeper are stored, keyed by player ID.
+// browser. Only differences from Sleeper are stored, keyed by player ID;
+// draft picks are keyed by pick ID (see picks.ts).
 export type RosterPlan = {
   positions: Record<string, string>; // column the player is shown in
   sections: Record<string, PlanSection>; // section the player is moved to
   cut: string[]; // players planned for release, hidden from the chart
+  picks: Record<string, PickPlacement>; // picks placed as future rookies
 };
 
-export const EMPTY_PLAN: RosterPlan = { positions: {}, sections: {}, cut: [] };
+export const EMPTY_PLAN: RosterPlan = { positions: {}, sections: {}, cut: [], picks: {} };
 
 export function isPlanEmpty(plan: RosterPlan): boolean {
   return (
     Object.keys(plan.positions).length === 0 &&
     Object.keys(plan.sections).length === 0 &&
-    plan.cut.length === 0
+    plan.cut.length === 0 &&
+    Object.keys(plan.picks).length === 0
   );
 }
 
 export type DragSource = {
-  playerId: string;
+  kind: "player" | "pick";
+  id: string;
   eligiblePositions: readonly string[];
-  section: PlanSection;
-  position: string;
+  // Null for a pick dragged out of the side panel.
+  section: PlanSection | null;
+  position: string | null;
 };
 
 export type DropTarget = { section: PlanSection; position: string };
@@ -35,11 +42,21 @@ export type DropTarget = { section: PlanSection; position: string };
 export function applyDrop(plan: RosterPlan, drag: DragSource, target: DropTarget): RosterPlan | null {
   if (!canPlace(drag.eligiblePositions, target.section, target.position)) return null;
   if (drag.section === target.section && drag.position === target.position) return null;
+  if (drag.kind === "pick") {
+    return { ...plan, picks: { ...plan.picks, [drag.id]: { ...target } } };
+  }
   return {
     ...plan,
-    positions: { ...plan.positions, [drag.playerId]: target.position },
-    sections: { ...plan.sections, [drag.playerId]: target.section },
+    positions: { ...plan.positions, [drag.id]: target.position },
+    sections: { ...plan.sections, [drag.id]: target.section },
   };
+}
+
+export function unplacePick(plan: RosterPlan, pickId: string): RosterPlan {
+  if (!(pickId in plan.picks)) return plan;
+  const picks = { ...plan.picks };
+  delete picks[pickId];
+  return { ...plan, picks };
 }
 
 export function cutPlayer(plan: RosterPlan, playerId: string): RosterPlan {
@@ -64,6 +81,21 @@ function stringEntries(value: unknown, allowed?: readonly string[]): Record<stri
   return result;
 }
 
+function pickPlacements(value: unknown): Record<string, PickPlacement> {
+  if (!isRecord(value)) return {};
+  const result: Record<string, PickPlacement> = {};
+  for (const [key, v] of Object.entries(value)) {
+    if (
+      isRecord(v) &&
+      typeof v.position === "string" &&
+      PLAN_SECTIONS.includes(v.section as PlanSection)
+    ) {
+      result[key] = { section: v.section as PlanSection, position: v.position };
+    }
+  }
+  return result;
+}
+
 function tryParse(raw: string | null): unknown {
   if (!raw) return null;
   try {
@@ -83,6 +115,7 @@ export function parsePlan(raw: string | null, legacyOverrides: string | null): R
       positions: stringEntries(stored.positions),
       sections: stringEntries(stored.sections, PLAN_SECTIONS) as Record<string, PlanSection>,
       cut: Array.isArray(stored.cut) ? stored.cut.filter((id): id is string => typeof id === "string") : [],
+      picks: pickPlacements(stored.picks),
     };
   }
   return { ...EMPTY_PLAN, positions: stringEntries(tryParse(legacyOverrides)) };

@@ -143,7 +143,7 @@ describe("DepthChartTable", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
     fireEvent.click(screen.getByRole("button", { name: "Reset plan" }));
     expect(JSON.parse(window.localStorage.getItem("roster-mgmt:plan:league1:1")!)).toEqual({
-      positions: {}, sections: {}, cut: [],
+      positions: {}, sections: {}, cut: [], picks: {},
     });
     expect(window.localStorage.getItem("roster-mgmt:overrides:league1:1")).toBeNull();
     expect(screen.getByText("Justin Herbert")).toBeTruthy();

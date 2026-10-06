@@ -80,13 +80,14 @@ function DraggableCell({
   onCut: (playerId: string) => void;
 }) {
   const source: DragSource = {
-    playerId: cell.playerId,
+    kind: cell.kind,
+    id: cell.id,
     eligiblePositions: cell.eligiblePositions,
     section,
     position,
   };
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `${section}:${position}:${cell.playerId}`,
+    id: `${section}:${position}:${cell.id}`,
     data: source,
   });
 
@@ -112,7 +113,7 @@ function DraggableCell({
       </span>
       <button
         type="button"
-        onClick={() => onCut(cell.playerId)}
+        onClick={() => onCut(cell.id)}
         aria-label={`Cut ${cell.displayName}`}
         title="Cut"
         className="rounded px-1 text-gray-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
