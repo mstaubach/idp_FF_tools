@@ -178,7 +178,10 @@ export default function DepthChartTable({
           Reset corrections
         </button>
       )}
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      {/* A fixed id keeps dnd-kit's aria-describedby stable between the server
+          render and hydration; without it dnd-kit uses a module-level counter
+          that keeps climbing on the server. */}
+      <DndContext id="roster-depth-chart" sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-pitch-700">
           <table className="w-full border-collapse text-sm">
             <thead>
