@@ -1,5 +1,6 @@
-import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "./types";
-import { deriveBenchIds } from "./depth-chart";
+import type { SleeperLeague } from "./types";
+import { starterSlotTypes, type DepthChartGrid } from "./depth-chart";
+import type { PlanSection } from "./plan";
 
 export type SlotCount = { used: number; total: number };
 
@@ -10,23 +11,36 @@ export type RosterCounts = {
   ir: SlotCount;
 };
 
-function countValid(ids: string[], players: Record<string, SleeperPlayer>): number {
-  return ids.filter((id) => id !== "0" && players[id]).length;
-}
-
-export function computeRosterCounts(
-  roster: SleeperRoster,
-  players: Record<string, SleeperPlayer>,
+// How many slots the league allows in each section.
+export function sectionSlotTotals(
   rosterPositions: string[],
   settings: SleeperLeague["settings"],
+): Record<PlanSection, number> {
+  return {
+    Starting: starterSlotTypes(rosterPositions).length,
+    Bench: rosterPositions.filter((p) => p === "BN").length,
+    Taxi: settings.taxi_slots ?? 0,
+    IR: settings.reserve_slots ?? 0,
+  };
+}
+
+// Players per section are counted from the built grid, so planned moves and
+// cuts are reflected.
+export function computeRosterCounts(
+  grid: DepthChartGrid,
+  totals: Record<PlanSection, number>,
 ): RosterCounts {
-  const bench = deriveBenchIds(roster);
-  const benchTotal = rosterPositions.filter((p) => p === "BN").length;
+  const used = (label: PlanSection) =>
+    grid.sections
+      .filter((s) => s.label === label)
+      .flatMap((s) => s.rows.flat())
+      .filter(Boolean).length;
+  const count = (label: PlanSection): SlotCount => ({ used: used(label), total: totals[label] });
 
   return {
-    starting: { used: countValid(roster.starters, players), total: roster.starters.length },
-    bench: { used: countValid(bench, players), total: benchTotal },
-    taxi: { used: countValid(roster.taxi ?? [], players), total: settings.taxi_slots ?? 0 },
-    ir: { used: countValid(roster.reserve ?? [], players), total: settings.reserve_slots ?? 0 },
+    starting: count("Starting"),
+    bench: count("Bench"),
+    taxi: count("Taxi"),
+    ir: count("IR"),
   };
 }

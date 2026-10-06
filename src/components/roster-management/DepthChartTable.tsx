@@ -13,29 +13,58 @@ import {
 } from "@dnd-kit/core";
 import {
   buildDepthChart,
+  columnLabel,
+  countActiveByPosition,
+  playerDisplayName,
   type DepthChartCell,
   type DepthChartSection,
 } from "@/lib/roster-management/depth-chart";
-import type { SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
+import {
+  EMPTY_PLAN,
+  applyDrop,
+  cutPlayer,
+  isPlanEmpty,
+  parsePlan,
+  restorePlayer,
+  type DragSource,
+  type DropTarget,
+  type PlanSection,
+  type RosterPlan,
+} from "@/lib/roster-management/plan";
+import RosterCountsSummary from "@/components/roster-management/RosterCountsSummary";
+import { computeRosterCounts, sectionSlotTotals } from "@/lib/roster-management/roster-counts";
+import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
-function overridesKey(leagueId: string, rosterId: number): string {
+const NO_ROSTER_POSITIONS: string[] = [];
+const NO_SETTINGS: SleeperLeague["settings"] = {};
+
+function planKey(leagueId: string, rosterId: number): string {
+  return `roster-mgmt:plan:${leagueId}:${rosterId}`;
+}
+
+// Column corrections saved before the planner existed. Read once to seed the
+// plan, then removed on the first save so a reset can't resurrect them.
+function legacyOverridesKey(leagueId: string, rosterId: number): string {
   return `roster-mgmt:overrides:${leagueId}:${rosterId}`;
 }
 
-function loadOverrides(leagueId: string, rosterId: number): Record<string, string> {
+function loadPlan(leagueId: string, rosterId: number): RosterPlan {
   try {
-    const raw = window.localStorage.getItem(overridesKey(leagueId, rosterId));
-    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    return parsePlan(
+      window.localStorage.getItem(planKey(leagueId, rosterId)),
+      window.localStorage.getItem(legacyOverridesKey(leagueId, rosterId)),
+    );
   } catch {
-    return {};
+    return EMPTY_PLAN;
   }
 }
 
-function saveOverrides(leagueId: string, rosterId: number, overrides: Record<string, string>) {
+function savePlan(leagueId: string, rosterId: number, plan: RosterPlan) {
   try {
-    window.localStorage.setItem(overridesKey(leagueId, rosterId), JSON.stringify(overrides));
+    window.localStorage.setItem(planKey(leagueId, rosterId), JSON.stringify(plan));
+    window.localStorage.removeItem(legacyOverridesKey(leagueId, rosterId));
   } catch {
-    // Private browsing or storage disabled - corrections just won't persist.
+    // Private browsing or storage disabled - the plan just won't persist.
   }
 }
 
@@ -43,38 +72,53 @@ function DraggableCell({
   cell,
   section,
   position,
+  onCut,
 }: {
   cell: DepthChartCell;
-  section: string;
+  section: PlanSection;
   position: string;
+  onCut: (playerId: string) => void;
 }) {
-  const draggable = cell.eligiblePositions.length > 1;
+  const source: DragSource = {
+    playerId: cell.playerId,
+    eligiblePositions: cell.eligiblePositions,
+    section,
+    position,
+  };
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `${section}:${position}:${cell.playerId}`,
-    data: { cell, section, currentPosition: position },
-    disabled: !draggable,
+    data: source,
   });
-
-  if (!draggable) {
-    return <span>{cell.displayName}</span>;
-  }
 
   const style = transform
     ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 }
     : undefined;
 
+  // Drag listeners sit on the name only, so clicking the cut button never
+  // starts a drag.
   return (
     <span
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      data-draggable="true"
       style={style}
-      className={`cursor-grab rounded bg-green-50 px-1 dark:bg-pitch-700/60 ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={`inline-flex items-center gap-1 ${isDragging ? "opacity-50" : ""}`}
     >
-      {cell.displayName}
+      <span
+        {...listeners}
+        {...attributes}
+        data-draggable="true"
+        className="cursor-grab rounded px-1 hover:bg-green-50 dark:hover:bg-pitch-700/60"
+      >
+        {cell.displayName}
+      </span>
+      <button
+        type="button"
+        onClick={() => onCut(cell.playerId)}
+        aria-label={`Cut ${cell.displayName}`}
+        title="Cut"
+        className="rounded px-1 text-gray-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
+      >
+        ×
+      </button>
     </span>
   );
 }
@@ -84,15 +128,18 @@ function DroppableCell({
   position,
   rowIndex,
   cell,
+  onCut,
 }: {
-  section: string;
+  section: PlanSection;
   position: string;
   rowIndex: number;
   cell: DepthChartCell | null;
+  onCut: (playerId: string) => void;
 }) {
+  const target: DropTarget = { section, position };
   const { setNodeRef, isOver } = useDroppable({
     id: `${section}:${position}:${rowIndex}`,
-    data: { section, position },
+    data: target,
   });
 
   return (
@@ -104,8 +151,54 @@ function DroppableCell({
         isOver ? "bg-green-100 dark:bg-green-900/40" : ""
       }`}
     >
-      {cell ? <DraggableCell cell={cell} section={section} position={position} /> : ""}
+      {cell ? (
+        <DraggableCell cell={cell} section={section} position={position} onCut={onCut} />
+      ) : (
+        ""
+      )}
     </td>
+  );
+}
+
+function CutList({
+  playerIds,
+  players,
+  onRestore,
+}: {
+  playerIds: string[];
+  players: Record<string, SleeperPlayer>;
+  onRestore: (playerId: string) => void;
+}) {
+  return (
+    <section
+      aria-label="Cut players"
+      className="rounded-xl border border-gray-200 p-3 dark:border-pitch-700"
+    >
+      <h2 className="text-sm font-bold text-gray-700 dark:text-slate-300">
+        Cut ({playerIds.length})
+      </h2>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {playerIds.map((id) => {
+          const name = playerDisplayName(players[id]);
+          return (
+            <li
+              key={id}
+              className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs text-gray-500 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-400"
+            >
+              <span className="line-through">{name}</span>
+              <button
+                type="button"
+                onClick={() => onRestore(id)}
+                aria-label={`Restore ${name}`}
+                className="font-semibold text-green-600 hover:underline dark:text-green-400"
+              >
+                Restore
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -113,69 +206,76 @@ export default function DepthChartTable({
   roster,
   players,
   positions,
+  rosterPositions = NO_ROSTER_POSITIONS,
+  settings = NO_SETTINGS,
   leagueId,
   rosterId,
 }: {
   roster: SleeperRoster;
   players: Record<string, SleeperPlayer>;
   positions: string[];
+  rosterPositions?: string[];
+  settings?: SleeperLeague["settings"];
   leagueId: string;
   rosterId: number;
 }) {
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [plan, setPlan] = useState<RosterPlan>(EMPTY_PLAN);
 
   useEffect(() => {
     // Deferred to a post-mount effect (not the useState initializer) because
     // localStorage isn't available during Next's server-side render; reading
     // it here avoids an SSR/client hydration mismatch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOverrides(loadOverrides(leagueId, rosterId));
+    setPlan(loadPlan(leagueId, rosterId));
   }, [leagueId, rosterId]);
 
-  const grid = useMemo(
-    () => buildDepthChart(roster, players, positions, overrides),
-    [roster, players, positions, overrides],
+  const slotTotals = useMemo(
+    () => sectionSlotTotals(rosterPositions, settings),
+    [rosterPositions, settings],
   );
+  const grid = useMemo(() => {
+    // Sections the league has slots for stay on screen as drop targets even
+    // when empty.
+    const showEmpty = (Object.keys(slotTotals) as PlanSection[]).filter((s) => slotTotals[s] > 0);
+    return buildDepthChart(roster, players, positions, { rosterPositions, plan, showEmpty });
+  }, [roster, players, positions, rosterPositions, slotTotals, plan]);
+  const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
+  const sectionCounts = useMemo(() => computeRosterCounts(grid, slotTotals), [grid, slotTotals]);
+  // Cut players who have since left the roster in Sleeper aren't shown.
+  const cutIds = plan.cut.filter((id) => players[id]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   );
 
+  function updatePlan(next: RosterPlan) {
+    setPlan(next);
+    savePlan(leagueId, rosterId, next);
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
 
-    const activeData = active.data.current as
-      | { cell: DepthChartCell; section: string; currentPosition: string }
-      | undefined;
-    const overData = over.data.current as { section: string; position: string } | undefined;
-    if (!activeData || !overData) return;
-    if (activeData.section !== overData.section) return;
-    if (!activeData.cell.eligiblePositions.includes(overData.position)) return;
-    // Dropped back onto the column it's already rendered in - no-op, don't
-    // create a phantom override that would make "Reset corrections" appear.
-    if (overData.position === activeData.currentPosition) return;
+    const source = active.data.current as DragSource | undefined;
+    const target = over.data.current as DropTarget | undefined;
+    if (!source || !target) return;
 
-    const next = { ...overrides, [activeData.cell.playerId]: overData.position };
-    setOverrides(next);
-    saveOverrides(leagueId, rosterId, next);
-  }
-
-  function handleReset() {
-    setOverrides({});
-    saveOverrides(leagueId, rosterId, {});
+    const next = applyDrop(plan, source, target);
+    if (next) updatePlan(next);
   }
 
   return (
     <div className="space-y-2">
-      {Object.keys(overrides).length > 0 && (
+      <RosterCountsSummary counts={sectionCounts} />
+      {!isPlanEmpty(plan) && (
         <button
           type="button"
-          onClick={handleReset}
+          onClick={() => updatePlan(EMPTY_PLAN)}
           className="text-xs text-green-600 hover:underline dark:text-green-400"
         >
-          Reset corrections
+          Reset plan
         </button>
       )}
       {/* A fixed id keeps dnd-kit's aria-describedby stable between the server
@@ -194,7 +294,7 @@ export default function DepthChartTable({
                     key={pos}
                     className="border-b border-l border-gray-200 bg-green-700 px-4 py-2.5 text-center font-bold text-white dark:border-pitch-700"
                   >
-                    {pos}
+                    {columnLabel(pos)}: {activeCounts[pos]}
                   </th>
                 ))}
               </tr>
@@ -220,6 +320,7 @@ export default function DepthChartTable({
                         position={grid.positions[ci]}
                         rowIndex={ri}
                         cell={cell}
+                        onCut={(id) => updatePlan(cutPlayer(plan, id))}
                       />
                     ))}
                   </tr>
@@ -229,6 +330,13 @@ export default function DepthChartTable({
           </table>
         </div>
       </DndContext>
+      {cutIds.length > 0 && (
+        <CutList
+          playerIds={cutIds}
+          players={players}
+          onRestore={(id) => updatePlan(restorePlayer(plan, id))}
+        />
+      )}
     </div>
   );
 }

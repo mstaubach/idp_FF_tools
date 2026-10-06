@@ -1,6 +1,5 @@
 import Link from "next/link";
 import DepthChartTable from "@/components/roster-management/DepthChartTable";
-import RosterCountsSummary from "@/components/roster-management/RosterCountsSummary";
 import {
   getLeague,
   getRosters,
@@ -8,7 +7,6 @@ import {
   getPlayers,
 } from "@/lib/roster-management/sleeper";
 import { derivePositionColumns } from "@/lib/roster-management/depth-chart";
-import { computeRosterCounts } from "@/lib/roster-management/roster-counts";
 import type { SleeperPlayer } from "@/lib/roster-management/types";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +65,6 @@ export default async function RosterPage({
     : "Unowned";
 
   const positions = derivePositionColumns(league.roster_positions);
-  const counts = computeRosterCounts(roster, players, league.roster_positions, league.settings);
 
   // roster.starters is intentionally omitted here: Sleeper always includes
   // starters within roster.players, so this union already covers them.
@@ -100,12 +97,12 @@ export default async function RosterPage({
         </Link>
       </div>
 
-      <RosterCountsSummary counts={counts} />
-
       <DepthChartTable
         roster={roster}
         players={rosterPlayers}
         positions={positions}
+        rosterPositions={league.roster_positions}
+        settings={league.settings}
         leagueId={leagueId}
         rosterId={rosterIdNum}
       />
