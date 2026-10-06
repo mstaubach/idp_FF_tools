@@ -213,6 +213,14 @@ describe("DepthChartTable", () => {
       expect(targetInput("LB").value).toBe("4");
     });
 
+    it("shows a Target badge totaling the targets once one is set", () => {
+      renderTable();
+      expect(screen.queryByText(/^Target \d/)).toBeNull();
+      fireEvent.change(targetInput("QB"), { target: { value: "2" } });
+      fireEvent.change(targetInput("LB"), { target: { value: "2" } });
+      expect(screen.getByTitle("2 short of target").textContent).toBe("Target 2/4");
+    });
+
     it("keeps targets when the plan is reset", () => {
       renderTable();
       fireEvent.change(targetInput("QB"), { target: { value: "2" } });

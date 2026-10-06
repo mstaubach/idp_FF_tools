@@ -1,3 +1,5 @@
+import type { SlotCount } from "./roster-counts";
+
 // How many Starting + Bench players the owner wants at each position column,
 // kept per roster in the browser alongside (but separate from) the plan.
 export type PositionTargets = Record<string, number>;
@@ -42,4 +44,21 @@ export function parseTargets(raw: string | null): PositionTargets {
     if (isTargetValue(value)) result[key] = value;
   }
   return result;
+}
+
+// Every Starting + Bench player against the sum of the targets, for the
+// summary badge. Null until at least one target is set. Stored targets for
+// columns the league no longer has are left out, since they aren't shown.
+export function totalTarget(
+  activeCounts: Record<string, number>,
+  targets: PositionTargets,
+): SlotCount | null {
+  const values = Object.entries(targets)
+    .filter(([pos]) => pos in activeCounts)
+    .map(([, n]) => n);
+  if (values.length === 0) return null;
+  return {
+    used: Object.values(activeCounts).reduce((sum, n) => sum + n, 0),
+    total: values.reduce((sum, n) => sum + n, 0),
+  };
 }

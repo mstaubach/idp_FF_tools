@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseTargets, setTarget, targetStatus } from "@/lib/roster-management/targets";
+import { parseTargets, setTarget, targetStatus, totalTarget } from "@/lib/roster-management/targets";
 
 // ── targetStatus ───────────────────────────────────────────────────────────
 
@@ -61,5 +61,22 @@ describe("parseTargets", () => {
 
   it("drops entries that aren't non-negative whole numbers", () => {
     expect(parseTargets(JSON.stringify({ QB: 3, RB: -1, WR: 2.5, TE: "2", DL: 0 }))).toEqual({ QB: 3, DL: 0 });
+  });
+});
+
+// ── totalTarget ────────────────────────────────────────────────────────────
+
+describe("totalTarget", () => {
+  it("compares every Starting + Bench player against the sum of the targets", () => {
+    expect(totalTarget({ QB: 3, RB: 4, LB: 5 }, { QB: 3, LB: 6 })).toEqual({ used: 12, total: 9 });
+  });
+
+  it("is null when no targets are set", () => {
+    expect(totalTarget({ QB: 3 }, {})).toBeNull();
+  });
+
+  it("ignores stored targets for columns the league doesn't have", () => {
+    expect(totalTarget({ QB: 3 }, { QB: 2, K: 1 })).toEqual({ used: 3, total: 2 });
+    expect(totalTarget({ QB: 3 }, { K: 1 })).toBeNull();
   });
 });

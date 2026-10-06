@@ -55,6 +55,45 @@ describe("RosterCountsSummary", () => {
     expect(screen.queryAllByTitle(/over the limit/)).toHaveLength(1);
   });
 
+  describe("target badge", () => {
+    const counts: RosterCounts = {
+      starting: { used: 9, total: 9 },
+      bench: { used: 6, total: 8 },
+      taxi: { used: 0, total: 0 },
+      ir: { used: 0, total: 0 },
+    };
+
+    it("is green when the roster meets the target total", () => {
+      render(<RosterCountsSummary counts={counts} target={{ used: 15, total: 15 }} />);
+      const badge = screen.getByText("Target 15/15");
+      expect(badge.className).toContain("text-green");
+      expect(badge.getAttribute("title")).toBeNull();
+    });
+
+    it("is red and says how many short when the roster is below the target total", () => {
+      render(<RosterCountsSummary counts={counts} target={{ used: 15, total: 18 }} />);
+      const badge = screen.getByTitle("3 short of target");
+      expect(badge.textContent).toBe("Target 15/18");
+      expect(badge.className).toContain("text-red");
+    });
+
+    it("is hidden when no target is passed", () => {
+      render(<RosterCountsSummary counts={counts} />);
+      expect(screen.queryByText(/Target/)).toBeNull();
+    });
+
+    it("shows even when every section total is zero", () => {
+      const empty: RosterCounts = {
+        starting: { used: 0, total: 0 },
+        bench: { used: 0, total: 0 },
+        taxi: { used: 0, total: 0 },
+        ir: { used: 0, total: 0 },
+      };
+      render(<RosterCountsSummary counts={empty} target={{ used: 0, total: 2 }} />);
+      expect(screen.getByText("Target 0/2")).toBeTruthy();
+    });
+  });
+
   it("shows a section with no slots if players are still in it", () => {
     const counts: RosterCounts = {
       starting: { used: 9, total: 9 },

@@ -40,6 +40,7 @@ import {
   parseTargets,
   setTarget,
   targetStatus,
+  totalTarget,
   type PositionTargets,
 } from "@/lib/roster-management/targets";
 import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
@@ -294,6 +295,7 @@ export default function DepthChartTable({
   }, [roster, players, positions, rosterPositions, slotTotals, plan, picks]);
   const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
   const sectionCounts = useMemo(() => computeRosterCounts(grid, slotTotals), [grid, slotTotals]);
+  const targetTotal = useMemo(() => totalTarget(activeCounts, targets), [activeCounts, targets]);
   // Cut players who have since left the roster in Sleeper aren't shown.
   const cutIds = plan.cut.filter((id) => players[id]);
   const placedPickIds = new Set(
@@ -341,7 +343,7 @@ export default function DepthChartTable({
 
   return (
     <div className="space-y-2">
-      <RosterCountsSummary counts={sectionCounts} />
+      <RosterCountsSummary counts={sectionCounts} target={targetTotal} />
       {!isPlanEmpty(plan) && (
         <button
           type="button"
