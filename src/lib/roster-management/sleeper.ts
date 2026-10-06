@@ -4,6 +4,7 @@ import type {
   SleeperLeague,
   SleeperPlayer,
   SleeperRoster,
+  SleeperTradedPick,
   SleeperUser,
 } from "./types";
 
@@ -33,6 +34,11 @@ export async function getRosters(leagueId: string): Promise<SleeperRoster[]> {
 export async function getUsers(leagueId: string): Promise<SleeperUser[]> {
   if (!isValidSleeperId(leagueId)) return [];
   return (await getJson<SleeperUser[]>(`/league/${leagueId}/users`)) ?? [];
+}
+
+export async function getTradedPicks(leagueId: string): Promise<SleeperTradedPick[]> {
+  if (!isValidSleeperId(leagueId)) return [];
+  return (await getJson<SleeperTradedPick[]>(`/league/${leagueId}/traded_picks`)) ?? [];
 }
 
 async function _fetchPlayersRaw(): Promise<Record<string, SleeperPlayer>> {

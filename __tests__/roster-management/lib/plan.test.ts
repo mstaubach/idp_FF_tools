@@ -6,11 +6,14 @@ import {
   isPlanEmpty,
   parsePlan,
   restorePlayer,
+  unplacePick,
   type RosterPlan,
 } from "@/lib/roster-management/plan";
 
-const BONITTO = { playerId: "9", eligiblePositions: ["LB", "DL"], section: "Starting", position: "LB" } as const;
-const ADAMS = { playerId: "3", eligiblePositions: ["WR", "WRRB_FLEX"], section: "Bench", position: "WR" } as const;
+const BONITTO = { kind: "player", id: "9", eligiblePositions: ["LB", "DL"], section: "Starting", position: "LB" } as const;
+const ADAMS = { kind: "player", id: "3", eligiblePositions: ["WR", "WRRB_FLEX"], section: "Bench", position: "WR" } as const;
+// A pick dragged from the side panel has no current section or column.
+const PICK = { kind: "pick", id: "2027:1:1", eligiblePositions: ["QB", "WR", "WRRB_FLEX"], section: null, position: null } as const;
 
 // ── applyDrop ──────────────────────────────────────────────────────────────
 
@@ -36,9 +39,34 @@ describe("applyDrop", () => {
   });
 
   it("does not mutate the plan it was given", () => {
-    const plan: RosterPlan = { positions: {}, sections: {}, cut: [] };
+    const plan: RosterPlan = { positions: {}, sections: {}, cut: [], picks: {} };
     applyDrop(plan, BONITTO, { section: "IR", position: "LB" });
     expect(plan).toEqual(EMPTY_PLAN);
+  });
+});
+
+// ── applyDrop for picks ────────────────────────────────────────────────────
+
+describe("applyDrop for picks", () => {
+  it("places a pick from the panel without touching player entries", () => {
+    const next = applyDrop(EMPTY_PLAN, PICK, { section: "Taxi", position: "WR" });
+    expect(next).toEqual({ ...EMPTY_PLAN, picks: { "2027:1:1": { section: "Taxi", position: "WR" } } });
+  });
+
+  it("moves an already placed pick to a new spot", () => {
+    const placed = applyDrop(EMPTY_PLAN, PICK, { section: "Taxi", position: "WR" })!;
+    const moved = applyDrop(placed, { ...PICK, section: "Taxi", position: "WR" }, { section: "Bench", position: "QB" });
+    expect(moved?.picks).toEqual({ "2027:1:1": { section: "Bench", position: "QB" } });
+  });
+
+  it("allows Flex for a pick only in the Starting section", () => {
+    expect(applyDrop(EMPTY_PLAN, PICK, { section: "Bench", position: "WRRB_FLEX" })).toBeNull();
+    expect(applyDrop(EMPTY_PLAN, PICK, { section: "Starting", position: "WRRB_FLEX" })).not.toBeNull();
+  });
+
+  it("returns a placed pick to the panel", () => {
+    const placed = applyDrop(EMPTY_PLAN, PICK, { section: "Taxi", position: "WR" })!;
+    expect(unplacePick(placed, "2027:1:1").picks).toEqual({});
   });
 });
 
@@ -62,6 +90,7 @@ describe("isPlanEmpty", () => {
     expect(isPlanEmpty(EMPTY_PLAN)).toBe(true);
     expect(isPlanEmpty(cutPlayer(EMPTY_PLAN, "9"))).toBe(false);
     expect(isPlanEmpty({ ...EMPTY_PLAN, positions: { "9": "DL" } })).toBe(false);
+    expect(isPlanEmpty({ ...EMPTY_PLAN, picks: { "2027:1:1": { section: "Taxi", position: "WR" } } })).toBe(false);
   });
 });
 
@@ -69,7 +98,10 @@ describe("isPlanEmpty", () => {
 
 describe("parsePlan", () => {
   it("parses a stored plan", () => {
-    const stored: RosterPlan = { positions: { "9": "DL" }, sections: { "9": "Taxi" }, cut: ["1"] };
+    const stored: RosterPlan = {
+      positions: { "9": "DL" }, sections: { "9": "Taxi" }, cut: ["1"],
+      picks: { "2027:1:1": { section: "Taxi", position: "WR" } },
+    };
     expect(parsePlan(JSON.stringify(stored), null)).toEqual(stored);
   });
 
@@ -81,7 +113,23 @@ describe("parsePlan", () => {
 
   it("drops unknown section names and non-string entries", () => {
     const raw = JSON.stringify({ positions: { "9": "DL", "8": 4 }, sections: { "9": "Practice" }, cut: ["1", 2] });
-    expect(parsePlan(raw, null)).toEqual({ positions: { "9": "DL" }, sections: {}, cut: ["1"] });
+    expect(parsePlan(raw, null)).toEqual({ positions: { "9": "DL" }, sections: {}, cut: ["1"], picks: {} });
+  });
+
+  it("drops pick placements with an unknown section or a non-string column", () => {
+    const raw = JSON.stringify({
+      picks: {
+        "2027:1:1": { section: "Taxi", position: "WR" },
+        "2027:2:1": { section: "Practice", position: "WR" },
+        "2027:3:1": { section: "Bench", position: 3 },
+        "2027:4:1": "Taxi",
+      },
+    });
+    expect(parsePlan(raw, null).picks).toEqual({ "2027:1:1": { section: "Taxi", position: "WR" } });
+  });
+
+  it("loads a plan saved before picks existed", () => {
+    expect(parsePlan(JSON.stringify({ positions: {}, sections: {}, cut: ["1"] }), null).picks).toEqual({});
   });
 
   it("seeds column choices from legacy column corrections when no plan is stored", () => {

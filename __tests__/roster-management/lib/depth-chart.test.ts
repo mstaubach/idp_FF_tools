@@ -9,6 +9,7 @@ import {
   normalizePosition,
 } from "@/lib/roster-management/depth-chart";
 import { EMPTY_PLAN } from "@/lib/roster-management/plan";
+import type { DraftPick } from "@/lib/roster-management/picks";
 import type { SleeperRoster, SleeperPlayer } from "@/lib/roster-management/types";
 
 // ── derivePositionColumns ──────────────────────────────────────────────────
@@ -222,7 +223,7 @@ describe("buildDepthChart", () => {
     const starting = grid.sections.find((s) => s.label === "Starting")!;
     // Defaults to LB (their primary `position` field)
     const cell = starting.rows[0][POSITIONS.indexOf("LB")];
-    expect(cell?.playerId).toBe("9");
+    expect(cell?.id).toBe("9");
     expect(cell?.eligiblePositions).toEqual(["LB", "DL"]);
   });
 
@@ -233,7 +234,7 @@ describe("buildDepthChart", () => {
     };
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS, { plan: { ...EMPTY_PLAN, positions: { "9": "DL" } } });
     const starting = grid.sections.find((s) => s.label === "Starting")!;
-    expect(starting.rows[0][POSITIONS.indexOf("DL")]?.playerId).toBe("9");
+    expect(starting.rows[0][POSITIONS.indexOf("DL")]?.id).toBe("9");
     expect(starting.rows[0][POSITIONS.indexOf("LB")]).toBeNull();
   });
 
@@ -245,7 +246,7 @@ describe("buildDepthChart", () => {
     // "9" is only eligible for LB/DL - a "WR" override should be ignored.
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS, { plan: { ...EMPTY_PLAN, positions: { "9": "WR" } } });
     const starting = grid.sections.find((s) => s.label === "Starting")!;
-    expect(starting.rows[0][POSITIONS.indexOf("LB")]?.playerId).toBe("9");
+    expect(starting.rows[0][POSITIONS.indexOf("LB")]?.id).toBe("9");
     expect(starting.rows[0][POSITIONS.indexOf("WR")]).toBeNull();
   });
 
@@ -261,7 +262,7 @@ describe("buildDepthChart", () => {
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS);
     const starting = grid.sections.find((s) => s.label === "Starting")!;
     const cell = starting.rows[0][POSITIONS.indexOf("RB")];
-    expect(cell?.playerId).toBe("10");
+    expect(cell?.id).toBe("10");
     expect(cell?.displayName).toBe("Kyle Juszczyk");
     expect(cell?.eligiblePositions).toEqual(["RB", "TE"]);
     expect(starting.rows[0][POSITIONS.indexOf("TE")]).toBeNull();
@@ -329,8 +330,8 @@ describe("Flex column", () => {
     const grid = buildDepthChart(roster, PLAYERS, FLEX_POSITIONS, { rosterPositions: FLEX_ROSTER_POSITIONS });
     const starting = grid.sections.find((s) => s.label === "Starting")!;
     expect(starting.rows).toHaveLength(1);
-    expect(starting.rows[0][FLEX_POSITIONS.indexOf("WR")]?.playerId).toBe("3");
-    expect(starting.rows[0][FLEX_POSITIONS.indexOf("WRRB_FLEX")]?.playerId).toBe("5");
+    expect(starting.rows[0][FLEX_POSITIONS.indexOf("WR")]?.id).toBe("3");
+    expect(starting.rows[0][FLEX_POSITIONS.indexOf("WRRB_FLEX")]?.id).toBe("5");
   });
 
   it("never defaults a bench WR into Flex", () => {
@@ -340,7 +341,7 @@ describe("Flex column", () => {
     };
     const grid = buildDepthChart(roster, PLAYERS, FLEX_POSITIONS, { rosterPositions: FLEX_ROSTER_POSITIONS });
     const bench = grid.sections.find((s) => s.label === "Bench")!;
-    expect(bench.rows[0][FLEX_POSITIONS.indexOf("WR")]?.playerId).toBe("5");
+    expect(bench.rows[0][FLEX_POSITIONS.indexOf("WR")]?.id).toBe("5");
     expect(bench.rows[0][FLEX_POSITIONS.indexOf("WRRB_FLEX")]).toBeNull();
   });
 
@@ -361,7 +362,7 @@ describe("Flex column", () => {
       plan: { ...EMPTY_PLAN, positions: { "5": "WRRB_FLEX" } },
     });
     const bench = grid.sections.find((s) => s.label === "Bench")!;
-    expect(bench.rows[0][FLEX_POSITIONS.indexOf("WR")]?.playerId).toBe("5");
+    expect(bench.rows[0][FLEX_POSITIONS.indexOf("WR")]?.id).toBe("5");
   });
 });
 
@@ -381,7 +382,7 @@ describe("buildDepthChart with a plan", () => {
       plan: { ...EMPTY_PLAN, sections: { "3": "Taxi" } },
     });
     expect(section(grid, "Bench")!.rows[0][POSITIONS.indexOf("WR")]).toBeNull();
-    expect(section(grid, "Taxi")!.rows[0][POSITIONS.indexOf("WR")]?.playerId).toBe("3");
+    expect(section(grid, "Taxi")!.rows[0][POSITIONS.indexOf("WR")]?.id).toBe("3");
   });
 
   it("lists a player moved into a section after the players already there", () => {
@@ -395,7 +396,7 @@ describe("buildDepthChart with a plan", () => {
       POSITIONS,
       { plan: { ...EMPTY_PLAN, sections: { "11": "Starting" } } },
     );
-    const qbColumn = section(grid, "Starting")!.rows.map((r) => r[POSITIONS.indexOf("QB")]?.playerId);
+    const qbColumn = section(grid, "Starting")!.rows.map((r) => r[POSITIONS.indexOf("QB")]?.id);
     expect(qbColumn).toEqual(["1", "11"]);
   });
 
@@ -419,5 +420,61 @@ describe("buildDepthChart with a plan", () => {
     const grid = buildDepthChart(roster, PLAYERS, flexPositions);
     const benchWr = section(grid, "Bench")!.rows[0][flexPositions.indexOf("WR")];
     expect(benchWr?.eligiblePositions).toEqual(["WR", "WRRB_FLEX"]);
+  });
+});
+
+// ── buildDepthChart with draft picks ───────────────────────────────────────
+
+describe("buildDepthChart with draft picks", () => {
+  // Starting: QB "1". Bench: WR "3".
+  const roster: SleeperRoster = {
+    roster_id: 1, owner_id: "u1",
+    starters: ["1"], players: ["1", "3"], taxi: null, reserve: null,
+  };
+  const ROUND_1: DraftPick = { id: "2027:1:1", season: "2027", round: 1, originalRosterId: 1 };
+  const ROUND_2: DraftPick = { id: "2027:2:4", season: "2027", round: 2, originalRosterId: 4 };
+  const bench = (grid: ReturnType<typeof buildDepthChart>) => grid.sections.find((s) => s.label === "Bench")!;
+
+  it("places a pick after the players already in its column", () => {
+    const grid = buildDepthChart(roster, PLAYERS, POSITIONS, {
+      picks: [ROUND_1],
+      plan: { ...EMPTY_PLAN, picks: { "2027:1:1": { section: "Bench", position: "WR" } } },
+    });
+    const wrColumn = bench(grid).rows.map((r) => r[POSITIONS.indexOf("WR")]);
+    expect(wrColumn.map((c) => c?.id)).toEqual(["3", "2027:1:1"]);
+    expect(wrColumn[1]).toEqual({
+      kind: "pick", id: "2027:1:1", displayName: "2027 Rd 1", eligiblePositions: POSITIONS,
+    });
+  });
+
+  it("leaves unplaced picks out of the grid", () => {
+    const grid = buildDepthChart(roster, PLAYERS, POSITIONS, { picks: [ROUND_1, ROUND_2] });
+    const ids = grid.sections.flatMap((s) => s.rows.flat()).map((c) => c?.id);
+    expect(ids).not.toContain("2027:1:1");
+    expect(ids).not.toContain("2027:2:4");
+  });
+
+  it("ignores a placement for a pick the roster no longer owns", () => {
+    const grid = buildDepthChart(roster, PLAYERS, POSITIONS, {
+      picks: [ROUND_1],
+      plan: { ...EMPTY_PLAN, picks: { "2027:2:4": { section: "Bench", position: "WR" } } },
+    });
+    expect(bench(grid).rows).toHaveLength(1);
+  });
+
+  it("ignores a placement in a column the league doesn't have", () => {
+    const grid = buildDepthChart(roster, PLAYERS, POSITIONS, {
+      picks: [ROUND_1],
+      plan: { ...EMPTY_PLAN, picks: { "2027:1:1": { section: "Bench", position: "K" } } },
+    });
+    expect(bench(grid).rows).toHaveLength(1);
+  });
+
+  it("counts placed picks in the position totals", () => {
+    const grid = buildDepthChart(roster, PLAYERS, POSITIONS, {
+      picks: [ROUND_1],
+      plan: { ...EMPTY_PLAN, picks: { "2027:1:1": { section: "Bench", position: "WR" } } },
+    });
+    expect(countActiveByPosition(grid).WR).toBe(2);
   });
 });

@@ -1,3 +1,4 @@
+import { pickLabel, type DraftPick } from "./picks";
 import type { PlanSection, RosterPlan } from "./plan";
 import type { SleeperPlayer, SleeperRoster } from "./types";
 
@@ -81,8 +82,11 @@ export function deriveBenchIds(roster: SleeperRoster): string[] {
   );
 }
 
+// A cell holds a rostered player or a draft pick planned as a future rookie.
+// `id` is the player ID or the pick ID accordingly.
 export type DepthChartCell = {
-  playerId: string;
+  kind: "player" | "pick";
+  id: string;
   displayName: string;
   eligiblePositions: string[];
 };
@@ -137,9 +141,10 @@ function buildSection(
   players: Record<string, SleeperPlayer>,
   planPositions: Record<string, string>,
   starterSlots: Map<string, string>,
+  placedPicks: Array<{ pick: DraftPick; position: string }>,
   showEmpty: boolean,
 ): DepthChartSection | null {
-  const byPosition = new Map<string, string[]>();
+  const byPosition = new Map<string, DepthChartCell[]>();
   for (const id of playerIds) {
     const player = players[id];
     const eligiblePositions = derivePlayerEligiblePositions(player, positions);
@@ -158,8 +163,20 @@ function buildSection(
           : placeable[0];
 
     const group = byPosition.get(assignedPos) ?? [];
-    group.push(id);
+    group.push({
+      kind: "player",
+      id,
+      displayName: playerDisplayName(player),
+      eligiblePositions,
+    });
     byPosition.set(assignedPos, group);
+  }
+
+  // Picks go after the column's players: they're future additions.
+  for (const { pick, position } of placedPicks) {
+    const group = byPosition.get(position) ?? [];
+    group.push({ kind: "pick", id: pick.id, displayName: pickLabel(pick), eligiblePositions: positions });
+    byPosition.set(position, group);
   }
 
   const maxRows = Math.max(
@@ -170,15 +187,7 @@ function buildSection(
   if (maxRows === 0 && !showEmpty) return null;
 
   const rows: (DepthChartCell | null)[][] = Array.from({ length: Math.max(maxRows, 1) }, (_, r) =>
-    positions.map((pos) => {
-      const id = byPosition.get(pos)?.[r];
-      if (id === undefined) return null;
-      return {
-        playerId: id,
-        displayName: playerDisplayName(players[id]),
-        eligiblePositions: derivePlayerEligiblePositions(players[id], positions),
-      };
-    }),
+    positions.map((pos) => byPosition.get(pos)?.[r] ?? null),
   );
 
   return { label, rows };
@@ -186,11 +195,12 @@ function buildSection(
 
 // Local stand-in for plan.ts's EMPTY_PLAN: plan.ts imports this module, so
 // only types flow the other way.
-const NO_PLAN: RosterPlan = { positions: {}, sections: {}, cut: [] };
+const NO_PLAN: RosterPlan = { positions: {}, sections: {}, cut: [], picks: {} };
 
 export type BuildDepthChartOptions = {
   rosterPositions?: string[]; // league roster_positions, used to find the flex starter
   plan?: RosterPlan;
+  picks?: DraftPick[]; // picks the roster owns; placed ones join the grid
   showEmpty?: PlanSection[]; // sections to render even with no players
 };
 
@@ -198,7 +208,7 @@ export function buildDepthChart(
   roster: SleeperRoster,
   players: Record<string, SleeperPlayer>,
   positions: string[],
-  { rosterPositions = [], plan = NO_PLAN, showEmpty = [] }: BuildDepthChartOptions = {},
+  { rosterPositions = [], plan = NO_PLAN, picks = [], showEmpty = [] }: BuildDepthChartOptions = {},
 ): DepthChartGrid {
   const starterSlots = deriveStarterSlots(roster, rosterPositions);
   const cut = new Set(plan.cut);
@@ -223,6 +233,16 @@ export function buildDepthChart(
     }
   }
 
+  // Placements for picks no longer owned, or for invalid spots, are skipped.
+  const picksBySection = new Map<PlanSection, Array<{ pick: DraftPick; position: string }>>();
+  for (const pick of picks) {
+    const placement = plan.picks[pick.id];
+    if (!placement || !canPlace(positions, placement.section, placement.position)) continue;
+    const group = picksBySection.get(placement.section) ?? [];
+    group.push({ pick, position: placement.position });
+    picksBySection.set(placement.section, group);
+  }
+
   const sections: DepthChartSection[] = [];
   for (const [label] of sleeperSections) {
     const section = buildSection(
@@ -232,6 +252,7 @@ export function buildDepthChart(
       players,
       plan.positions,
       starterSlots,
+      picksBySection.get(label) ?? [],
       showEmpty.includes(label),
     );
     if (section) sections.push(section);

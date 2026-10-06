@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import DepthChartTable from "@/components/roster-management/DepthChartTable";
+import type { DraftPick } from "@/lib/roster-management/picks";
 import type { SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
 afterEach(cleanup);
@@ -157,10 +158,79 @@ describe("DepthChartTable", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
     fireEvent.click(screen.getByRole("button", { name: "Reset plan" }));
     expect(JSON.parse(window.localStorage.getItem("roster-mgmt:plan:league1:1")!)).toEqual({
-      positions: {}, sections: {}, cut: [],
+      positions: {}, sections: {}, cut: [], picks: {},
     });
     expect(window.localStorage.getItem("roster-mgmt:overrides:league1:1")).toBeNull();
     expect(screen.getByText("Justin Herbert")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Reset plan" })).toBeNull();
+  });
+
+  describe("draft picks", () => {
+    const PICKS: DraftPick[] = [
+      { id: "2027:1:1", season: "2027", round: 1, originalRosterId: 1 },
+      { id: "2027:2:4", season: "2027", round: 2, originalRosterId: 4 },
+    ];
+    const TEAM_NAMES = { 1: "me", 4: "mongo41" };
+    const renderWithPicks = () =>
+      render(
+        <DepthChartTable
+          roster={ROSTER} players={PLAYERS} positions={POSITIONS}
+          picks={PICKS} draftSeason="2027" teamNames={TEAM_NAMES}
+          leagueId="league1" rosterId={1}
+        />,
+      );
+    const placeFirstRoundPick = () =>
+      window.localStorage.setItem(
+        "roster-mgmt:plan:league1:1",
+        JSON.stringify({ picks: { "2027:1:1": { section: "Bench", position: "QB" } } }),
+      );
+
+    it("lists the roster's owned picks in a side panel, naming the original team of acquired picks", () => {
+      renderWithPicks();
+      const panel = screen.getByRole("region", { name: "2027 Picks" });
+      expect(panel.textContent).toContain("Rd 1");
+      expect(panel.textContent).toContain("Rd 2 · via mongo41");
+      expect(panel.textContent).not.toContain("via me");
+    });
+
+    it("shows a placed pick in the grid, counts it, and takes it out of the panel", () => {
+      placeFirstRoundPick();
+      const { container } = renderWithPicks();
+      const benchQb = container.querySelector('td[data-section="Bench"][data-position="QB"]');
+      expect(benchQb?.textContent).toContain("2027 Rd 1");
+      expect(screen.getByRole("columnheader", { name: "QB: 2" })).toBeTruthy();
+      const panel = screen.getByRole("region", { name: "2027 Picks" });
+      expect(panel.textContent).not.toContain("Rd 1");
+    });
+
+    it("returns a placed pick to the panel with its remove button", () => {
+      placeFirstRoundPick();
+      const { container } = renderWithPicks();
+      fireEvent.click(screen.getByRole("button", { name: "Return 2027 Rd 1 to picks" }));
+      expect(container.querySelector("table")?.textContent).not.toContain("2027 Rd 1");
+      expect(screen.getByRole("region", { name: "2027 Picks" }).textContent).toContain("Rd 1");
+      expect(screen.queryByRole("region", { name: "Cut players" })).toBeNull();
+    });
+
+    it("says so when every pick has been placed", () => {
+      window.localStorage.setItem(
+        "roster-mgmt:plan:league1:1",
+        JSON.stringify({
+          picks: {
+            "2027:1:1": { section: "Bench", position: "QB" },
+            "2027:2:4": { section: "Bench", position: "LB" },
+          },
+        }),
+      );
+      renderWithPicks();
+      expect(screen.getByRole("region", { name: "2027 Picks" }).textContent).toContain("All picks placed");
+    });
+
+    it("shows no picks panel when no picks are passed", () => {
+      render(
+        <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+      );
+      expect(screen.queryByRole("region", { name: /Picks/ })).toBeNull();
+    });
   });
 });

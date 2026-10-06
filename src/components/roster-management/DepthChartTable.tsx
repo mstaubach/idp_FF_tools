@@ -26,17 +26,22 @@ import {
   isPlanEmpty,
   parsePlan,
   restorePlayer,
+  unplacePick,
   type DragSource,
   type DropTarget,
   type PlanSection,
   type RosterPlan,
 } from "@/lib/roster-management/plan";
+import DraftPicksPanel, { PICK_PANEL_DROP } from "@/components/roster-management/DraftPicksPanel";
 import RosterCountsSummary from "@/components/roster-management/RosterCountsSummary";
+import type { DraftPick } from "@/lib/roster-management/picks";
 import { computeRosterCounts, sectionSlotTotals } from "@/lib/roster-management/roster-counts";
 import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
 const NO_ROSTER_POSITIONS: string[] = [];
 const NO_SETTINGS: SleeperLeague["settings"] = {};
+const NO_PICKS: DraftPick[] = [];
+const NO_TEAM_NAMES: Record<number, string> = {};
 
 function planKey(leagueId: string, rosterId: number): string {
   return `roster-mgmt:plan:${leagueId}:${rosterId}`;
@@ -72,21 +77,22 @@ function DraggableCell({
   cell,
   section,
   position,
-  onCut,
+  onRemove,
 }: {
   cell: DepthChartCell;
   section: PlanSection;
   position: string;
-  onCut: (playerId: string) => void;
+  onRemove: (cell: DepthChartCell) => void;
 }) {
   const source: DragSource = {
-    playerId: cell.playerId,
+    kind: cell.kind,
+    id: cell.id,
     eligiblePositions: cell.eligiblePositions,
     section,
     position,
   };
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `${section}:${position}:${cell.playerId}`,
+    id: `${section}:${position}:${cell.id}`,
     data: source,
   });
 
@@ -94,7 +100,9 @@ function DraggableCell({
     ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 }
     : undefined;
 
-  // Drag listeners sit on the name only, so clicking the cut button never
+  const isPick = cell.kind === "pick";
+
+  // Drag listeners sit on the name only, so clicking the remove button never
   // starts a drag.
   return (
     <span
@@ -106,15 +114,19 @@ function DraggableCell({
         {...listeners}
         {...attributes}
         data-draggable="true"
-        className="cursor-grab rounded px-1 hover:bg-green-50 dark:hover:bg-pitch-700/60"
+        className={
+          isPick
+            ? "cursor-grab rounded-full border border-dashed border-amber-400 bg-amber-50 px-2 text-xs font-semibold text-amber-800 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-200"
+            : "cursor-grab rounded px-1 hover:bg-green-50 dark:hover:bg-pitch-700/60"
+        }
       >
         {cell.displayName}
       </span>
       <button
         type="button"
-        onClick={() => onCut(cell.playerId)}
-        aria-label={`Cut ${cell.displayName}`}
-        title="Cut"
+        onClick={() => onRemove(cell)}
+        aria-label={isPick ? `Return ${cell.displayName} to picks` : `Cut ${cell.displayName}`}
+        title={isPick ? "Back to picks" : "Cut"}
         className="rounded px-1 text-gray-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
       >
         ×
@@ -128,13 +140,13 @@ function DroppableCell({
   position,
   rowIndex,
   cell,
-  onCut,
+  onRemove,
 }: {
   section: PlanSection;
   position: string;
   rowIndex: number;
   cell: DepthChartCell | null;
-  onCut: (playerId: string) => void;
+  onRemove: (cell: DepthChartCell) => void;
 }) {
   const target: DropTarget = { section, position };
   const { setNodeRef, isOver } = useDroppable({
@@ -152,7 +164,7 @@ function DroppableCell({
       }`}
     >
       {cell ? (
-        <DraggableCell cell={cell} section={section} position={position} onCut={onCut} />
+        <DraggableCell cell={cell} section={section} position={position} onRemove={onRemove} />
       ) : (
         ""
       )}
@@ -208,6 +220,9 @@ export default function DepthChartTable({
   positions,
   rosterPositions = NO_ROSTER_POSITIONS,
   settings = NO_SETTINGS,
+  picks = NO_PICKS,
+  draftSeason,
+  teamNames = NO_TEAM_NAMES,
   leagueId,
   rosterId,
 }: {
@@ -216,6 +231,9 @@ export default function DepthChartTable({
   positions: string[];
   rosterPositions?: string[];
   settings?: SleeperLeague["settings"];
+  picks?: DraftPick[]; // picks this roster owns in the draft being planned
+  draftSeason?: string; // omit to hide the picks panel
+  teamNames?: Record<number, string>; // roster ID -> owner name, for "via" labels
   leagueId: string;
   rosterId: number;
 }) {
@@ -237,12 +255,16 @@ export default function DepthChartTable({
     // Sections the league has slots for stay on screen as drop targets even
     // when empty.
     const showEmpty = (Object.keys(slotTotals) as PlanSection[]).filter((s) => slotTotals[s] > 0);
-    return buildDepthChart(roster, players, positions, { rosterPositions, plan, showEmpty });
-  }, [roster, players, positions, rosterPositions, slotTotals, plan]);
+    return buildDepthChart(roster, players, positions, { rosterPositions, plan, picks, showEmpty });
+  }, [roster, players, positions, rosterPositions, slotTotals, plan, picks]);
   const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
   const sectionCounts = useMemo(() => computeRosterCounts(grid, slotTotals), [grid, slotTotals]);
   // Cut players who have since left the roster in Sleeper aren't shown.
   const cutIds = plan.cut.filter((id) => players[id]);
+  const placedPickIds = new Set(
+    grid.sections.flatMap((s) => s.rows.flat()).flatMap((c) => (c?.kind === "pick" ? [c.id] : [])),
+  );
+  const unplacedPicks = picks.filter((p) => !placedPickIds.has(p.id));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -259,11 +281,20 @@ export default function DepthChartTable({
     if (!over) return;
 
     const source = active.data.current as DragSource | undefined;
-    const target = over.data.current as DropTarget | undefined;
-    if (!source || !target) return;
+    const overData = over.data.current as DropTarget | typeof PICK_PANEL_DROP | undefined;
+    if (!source || !overData) return;
 
-    const next = applyDrop(plan, source, target);
+    if ("panel" in overData) {
+      if (source.kind === "pick") updatePlan(unplacePick(plan, source.id));
+      return;
+    }
+
+    const next = applyDrop(plan, source, overData);
     if (next) updatePlan(next);
+  }
+
+  function handleRemove(cell: DepthChartCell) {
+    updatePlan(cell.kind === "pick" ? unplacePick(plan, cell.id) : cutPlayer(plan, cell.id));
   }
 
   return (
@@ -282,52 +313,64 @@ export default function DepthChartTable({
           render and hydration; without it dnd-kit uses a module-level counter
           that keeps climbing on the server. */}
       <DndContext id="roster-depth-chart" sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-pitch-700">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className="border-b border-gray-200 bg-gray-100 px-4 py-2.5 text-center font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-300">
-                  Rank
-                </th>
-                {grid.positions.map((pos) => (
-                  <th
-                    key={pos}
-                    className="border-b border-l border-gray-200 bg-green-700 px-4 py-2.5 text-center font-bold text-white dark:border-pitch-700"
-                  >
-                    {columnLabel(pos)}: {activeCounts[pos]}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-gray-200 dark:border-pitch-700">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className="border-b border-gray-200 bg-gray-100 px-4 py-2.5 text-center font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800 dark:text-slate-300">
+                    Rank
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {grid.sections.map((section: DepthChartSection, si: number) =>
-                section.rows.map((row, ri) => (
-                  <tr
-                    key={`${section.label}-${ri}`}
-                    className={
-                      si > 0 && ri === 0
-                        ? "border-t-2 border-gray-300 dark:border-pitch-700"
-                        : ""
-                    }
-                  >
-                    <td className="border-b border-gray-100 px-4 py-2 text-center font-bold text-gray-700 dark:border-pitch-700 dark:text-slate-300">
-                      {section.label}
-                    </td>
-                    {row.map((cell, ci) => (
-                      <DroppableCell
-                        key={ci}
-                        section={section.label}
-                        position={grid.positions[ci]}
-                        rowIndex={ri}
-                        cell={cell}
-                        onCut={(id) => updatePlan(cutPlayer(plan, id))}
-                      />
-                    ))}
-                  </tr>
-                )),
-              )}
-            </tbody>
-          </table>
+                  {grid.positions.map((pos) => (
+                    <th
+                      key={pos}
+                      className="border-b border-l border-gray-200 bg-green-700 px-4 py-2.5 text-center font-bold text-white dark:border-pitch-700"
+                    >
+                      {columnLabel(pos)}: {activeCounts[pos]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {grid.sections.map((section: DepthChartSection, si: number) =>
+                  section.rows.map((row, ri) => (
+                    <tr
+                      key={`${section.label}-${ri}`}
+                      className={
+                        si > 0 && ri === 0
+                          ? "border-t-2 border-gray-300 dark:border-pitch-700"
+                          : ""
+                      }
+                    >
+                      <td className="border-b border-gray-100 px-4 py-2 text-center font-bold text-gray-700 dark:border-pitch-700 dark:text-slate-300">
+                        {section.label}
+                      </td>
+                      {row.map((cell, ci) => (
+                        <DroppableCell
+                          key={ci}
+                          section={section.label}
+                          position={grid.positions[ci]}
+                          rowIndex={ri}
+                          cell={cell}
+                          onRemove={handleRemove}
+                        />
+                      ))}
+                    </tr>
+                  )),
+                )}
+              </tbody>
+            </table>
+          </div>
+          {draftSeason && (
+            <DraftPicksPanel
+              season={draftSeason}
+              picks={unplacedPicks}
+              ownedCount={picks.length}
+              rosterId={rosterId}
+              teamNames={teamNames}
+              positions={positions}
+            />
+          )}
         </div>
       </DndContext>
       {cutIds.length > 0 && (
