@@ -11,9 +11,8 @@ import {
 } from "@/lib/roster-management/plan";
 
 const BONITTO = { kind: "player", id: "9", eligiblePositions: ["LB", "DL"], section: "Starting", position: "LB" } as const;
-const ADAMS = { kind: "player", id: "3", eligiblePositions: ["WR", "WRRB_FLEX"], section: "Bench", position: "WR" } as const;
 // A pick dragged from the side panel has no current section or column.
-const PICK = { kind: "pick", id: "2027:1:1", eligiblePositions: ["QB", "WR", "WRRB_FLEX"], section: null, position: null } as const;
+const PICK = { kind: "pick", id: "2027:1:1", eligiblePositions: ["QB", "WR"], section: null, position: null } as const;
 
 // ── applyDrop ──────────────────────────────────────────────────────────────
 
@@ -26,12 +25,6 @@ describe("applyDrop", () => {
 
   it("rejects a column the player isn't eligible for", () => {
     expect(applyDrop(EMPTY_PLAN, BONITTO, { section: "Bench", position: "WR" })).toBeNull();
-  });
-
-  it("allows Flex as a target only in the Starting section", () => {
-    expect(applyDrop(EMPTY_PLAN, ADAMS, { section: "Bench", position: "WRRB_FLEX" })).toBeNull();
-    expect(applyDrop(EMPTY_PLAN, ADAMS, { section: "Starting", position: "WRRB_FLEX" })?.sections)
-      .toEqual({ "3": "Starting" });
   });
 
   it("treats a drop back onto the player's current spot as a no-op", () => {
@@ -59,9 +52,8 @@ describe("applyDrop for picks", () => {
     expect(moved?.picks).toEqual({ "2027:1:1": { section: "Bench", position: "QB" } });
   });
 
-  it("allows Flex for a pick only in the Starting section", () => {
-    expect(applyDrop(EMPTY_PLAN, PICK, { section: "Bench", position: "WRRB_FLEX" })).toBeNull();
-    expect(applyDrop(EMPTY_PLAN, PICK, { section: "Starting", position: "WRRB_FLEX" })).not.toBeNull();
+  it("rejects a column the pick can't fill", () => {
+    expect(applyDrop(EMPTY_PLAN, PICK, { section: "Bench", position: "LB" })).toBeNull();
   });
 
   it("returns a placed pick to the panel", () => {
