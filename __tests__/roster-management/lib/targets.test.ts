@@ -67,8 +67,16 @@ describe("parseTargets", () => {
 // ── totalTarget ────────────────────────────────────────────────────────────
 
 describe("totalTarget", () => {
-  it("compares every Starting + Bench player against the sum of the targets", () => {
-    expect(totalTarget({ QB: 3, RB: 4, LB: 5 }, { QB: 3, LB: 6 })).toEqual({ used: 12, total: 9 });
+  it("counts players toward each target, up to that target", () => {
+    expect(totalTarget({ QB: 3, RB: 4, LB: 5 }, { QB: 3, LB: 6 })).toEqual({ used: 8, total: 9 });
+  });
+
+  it("doesn't let a surplus at one position cover a shortfall at another", () => {
+    expect(totalTarget({ QB: 1, LB: 6 }, { QB: 3, LB: 1 })).toEqual({ used: 2, total: 4 });
+  });
+
+  it("ignores players at positions without a target", () => {
+    expect(totalTarget({ QB: 3, RB: 9 }, { QB: 9 })).toEqual({ used: 3, total: 9 });
   });
 
   it("is null when no targets are set", () => {
@@ -76,7 +84,7 @@ describe("totalTarget", () => {
   });
 
   it("ignores stored targets for columns the league doesn't have", () => {
-    expect(totalTarget({ QB: 3 }, { QB: 2, K: 1 })).toEqual({ used: 3, total: 2 });
+    expect(totalTarget({ QB: 3 }, { QB: 2, K: 1 })).toEqual({ used: 2, total: 2 });
     expect(totalTarget({ QB: 3 }, { K: 1 })).toBeNull();
   });
 });
