@@ -44,6 +44,20 @@ describe("DepthChartTable", () => {
     expect(headers.some((h) => h?.includes("WRRB_FLEX"))).toBe(false);
   });
 
+  it("gives draggables the same aria-describedby on every render so SSR hydration matches", () => {
+    // dnd-kit falls back to a module-level counter for this id, which keeps
+    // climbing on a long-lived server but starts at 0 in the browser.
+    const describedBy = () => {
+      render(
+        <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+      );
+      const value = screen.getByText("Nik Bonitto").getAttribute("aria-describedby");
+      cleanup();
+      return value;
+    };
+    expect(describedBy()).toBe(describedBy());
+  });
+
   it("marks a dual-eligible player's cell as draggable", () => {
     render(
       <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
