@@ -36,6 +36,12 @@ import DraftPicksPanel, { PICK_PANEL_DROP } from "@/components/roster-management
 import RosterCountsSummary from "@/components/roster-management/RosterCountsSummary";
 import type { DraftPick } from "@/lib/roster-management/picks";
 import { computeRosterCounts, sectionSlotTotals } from "@/lib/roster-management/roster-counts";
+import {
+  parseTargets,
+  setTarget,
+  targetStatus,
+  type PositionTargets,
+} from "@/lib/roster-management/targets";
 import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
 const NO_ROSTER_POSITIONS: string[] = [];
@@ -72,6 +78,33 @@ function savePlan(leagueId: string, rosterId: number, plan: RosterPlan) {
     // Private browsing or storage disabled - the plan just won't persist.
   }
 }
+
+// Stored apart from the plan so resetting the plan keeps the owner's targets.
+function targetsKey(leagueId: string, rosterId: number): string {
+  return `roster-mgmt:targets:${leagueId}:${rosterId}`;
+}
+
+function loadTargets(leagueId: string, rosterId: number): PositionTargets {
+  try {
+    return parseTargets(window.localStorage.getItem(targetsKey(leagueId, rosterId)));
+  } catch {
+    return {};
+  }
+}
+
+function saveTargets(leagueId: string, rosterId: number, targets: PositionTargets) {
+  try {
+    window.localStorage.setItem(targetsKey(leagueId, rosterId), JSON.stringify(targets));
+  } catch {
+    // Private browsing or storage disabled - targets just won't persist.
+  }
+}
+
+const TARGET_STATUS_CLASSES = {
+  met: "text-green-700 dark:text-green-400",
+  short: "text-red-600 dark:text-red-400",
+  none: "text-gray-700 dark:text-slate-300",
+};
 
 function DraggableCell({
   cell,
@@ -238,6 +271,7 @@ export default function DepthChartTable({
   rosterId: number;
 }) {
   const [plan, setPlan] = useState<RosterPlan>(EMPTY_PLAN);
+  const [targets, setTargets] = useState<PositionTargets>({});
 
   useEffect(() => {
     // Deferred to a post-mount effect (not the useState initializer) because
@@ -245,6 +279,7 @@ export default function DepthChartTable({
     // it here avoids an SSR/client hydration mismatch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlan(loadPlan(leagueId, rosterId));
+    setTargets(loadTargets(leagueId, rosterId));
   }, [leagueId, rosterId]);
 
   const slotTotals = useMemo(
@@ -274,6 +309,13 @@ export default function DepthChartTable({
   function updatePlan(next: RosterPlan) {
     setPlan(next);
     savePlan(leagueId, rosterId, next);
+  }
+
+  function updateTarget(position: string, raw: string) {
+    const next = setTarget(targets, position, raw);
+    if (next === targets) return;
+    setTargets(next);
+    saveTargets(leagueId, rosterId, next);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -329,6 +371,43 @@ export default function DepthChartTable({
                       {columnLabel(pos)}: {activeCounts[pos]}
                     </th>
                   ))}
+                </tr>
+                <tr>
+                  <th
+                    scope="row"
+                    className="border-b border-gray-200 bg-gray-50 px-4 py-1.5 text-center font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800/60 dark:text-slate-300"
+                  >
+                    Target
+                  </th>
+                  {grid.positions.map((pos) => {
+                    const status = targetStatus(activeCounts[pos], targets[pos]);
+                    return (
+                      <td
+                        key={pos}
+                        className="border-b border-l border-gray-200 bg-gray-50 px-2 py-1.5 text-center dark:border-pitch-700 dark:bg-pitch-800/60"
+                      >
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          inputMode="numeric"
+                          value={targets[pos] ?? ""}
+                          onChange={(e) => updateTarget(pos, e.target.value)}
+                          aria-label={`${columnLabel(pos)} target`}
+                          title={
+                            status === "short"
+                              ? `${targets[pos] - activeCounts[pos]} short of target`
+                              : undefined
+                          }
+                          data-status={status ?? undefined}
+                          placeholder="–"
+                          className={`w-14 rounded border border-gray-200 bg-white px-1 py-0.5 text-center font-semibold dark:border-pitch-700 dark:bg-pitch-900 ${
+                            TARGET_STATUS_CLASSES[status ?? "none"]
+                          }`}
+                        />
+                      </td>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
