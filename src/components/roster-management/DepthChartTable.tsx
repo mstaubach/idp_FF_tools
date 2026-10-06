@@ -101,10 +101,10 @@ function saveTargets(leagueId: string, rosterId: number, targets: PositionTarget
   }
 }
 
-const TARGET_STATUS_CLASSES = {
-  met: "text-green-700 dark:text-green-400",
-  short: "text-red-600 dark:text-red-400",
-  none: "text-gray-700 dark:text-slate-300",
+const TARGET_CELL_CLASSES = {
+  met: "bg-green-200 dark:bg-green-900/70",
+  short: "bg-red-200 dark:bg-red-900/70",
+  none: "bg-gray-50 dark:bg-pitch-800/60",
 };
 
 function DraggableCell({
@@ -386,7 +386,15 @@ export default function DepthChartTable({
                     return (
                       <td
                         key={pos}
-                        className="border-b border-l border-gray-200 bg-gray-50 px-2 py-1.5 text-center dark:border-pitch-700 dark:bg-pitch-800/60"
+                        data-status={status ?? undefined}
+                        title={
+                          status === "short"
+                            ? `${targets[pos] - activeCounts[pos]} short of target`
+                            : undefined
+                        }
+                        className={`border-b border-l border-gray-200 px-2 py-1.5 text-center dark:border-pitch-700 ${
+                          TARGET_CELL_CLASSES[status ?? "none"]
+                        }`}
                       >
                         <input
                           type="number"
@@ -396,16 +404,8 @@ export default function DepthChartTable({
                           value={targets[pos] ?? ""}
                           onChange={(e) => updateTarget(pos, e.target.value)}
                           aria-label={`${columnLabel(pos)} target`}
-                          title={
-                            status === "short"
-                              ? `${targets[pos] - activeCounts[pos]} short of target`
-                              : undefined
-                          }
-                          data-status={status ?? undefined}
                           placeholder="–"
-                          className={`w-14 rounded border border-gray-200 bg-white px-1 py-0.5 text-center font-semibold dark:border-pitch-700 dark:bg-pitch-900 ${
-                            TARGET_STATUS_CLASSES[status ?? "none"]
-                          }`}
+                          className="w-14 rounded border border-gray-200 bg-white px-1 py-0.5 text-center font-semibold text-gray-900 dark:border-pitch-700 dark:bg-pitch-900 dark:text-slate-100"
                         />
                       </td>
                     );

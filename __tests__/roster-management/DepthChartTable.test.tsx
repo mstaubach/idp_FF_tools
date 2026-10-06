@@ -172,35 +172,37 @@ describe("DepthChartTable", () => {
       );
     const targetInput = (label: string) =>
       screen.getByRole("spinbutton", { name: `${label} target` }) as HTMLInputElement;
+    const targetCell = (label: string) => targetInput(label).closest("td")!;
 
     it("renders an empty target input for each position", () => {
       renderTable();
       expect(screen.getByRole("rowheader", { name: "Target" })).toBeTruthy();
       for (const pos of POSITIONS) {
         expect(targetInput(pos).value).toBe("");
-        expect(targetInput(pos).dataset.status).toBeUndefined();
+        expect(targetCell(pos).dataset.status).toBeUndefined();
       }
     });
 
-    it("marks a target as met when the position count reaches it", () => {
+    it("turns the target cell green when the position count reaches it", () => {
       renderTable();
       fireEvent.change(targetInput("QB"), { target: { value: "1" } });
-      expect(targetInput("QB").dataset.status).toBe("met");
-      expect(targetInput("QB").className).toContain("text-green");
+      expect(targetCell("QB").dataset.status).toBe("met");
+      expect(targetCell("QB").className).toContain("bg-green");
     });
 
-    it("marks a target as short when the position count is below it", () => {
+    it("turns the target cell red when the position count is below it", () => {
       renderTable();
       fireEvent.change(targetInput("QB"), { target: { value: "3" } });
-      expect(targetInput("QB").dataset.status).toBe("short");
-      expect(targetInput("QB").className).toContain("text-red");
+      expect(targetCell("QB").dataset.status).toBe("short");
+      expect(targetCell("QB").className).toContain("bg-red");
+      expect(targetCell("QB").getAttribute("title")).toBe("2 short of target");
     });
 
     it("re-evaluates the target as the plan changes", () => {
       renderTable();
       fireEvent.change(targetInput("QB"), { target: { value: "1" } });
       fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
-      expect(targetInput("QB").dataset.status).toBe("short");
+      expect(targetCell("QB").dataset.status).toBe("short");
     });
 
     it("saves targets to storage and reloads them", () => {
