@@ -380,7 +380,7 @@ export default function DepthChartTable({
                 <tr>
                   <th
                     scope="row"
-                    className="border-b border-gray-200 bg-gray-50 px-4 py-1.5 text-center font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800/60 dark:text-slate-300"
+                    className="border-b border-gray-200 bg-gray-50 px-4 py-1 text-center font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800/60 dark:text-slate-300"
                   >
                     Target
                   </th>
@@ -395,7 +395,7 @@ export default function DepthChartTable({
                             ? `${targets[pos] - activeCounts[pos]} short of target`
                             : undefined
                         }
-                        className={`border-b border-l border-gray-200 px-2 py-1.5 text-center dark:border-pitch-700 ${
+                        className={`border-b border-l border-gray-200 p-0 text-center dark:border-pitch-700 ${
                           TARGET_CELL_CLASSES[status ?? "none"]
                         }`}
                       >
@@ -408,7 +408,9 @@ export default function DepthChartTable({
                           onChange={(e) => updateTarget(pos, e.target.value)}
                           aria-label={`${columnLabel(pos)} target`}
                           placeholder="–"
-                          className="w-14 rounded border border-gray-200 bg-white px-1 py-0.5 text-center font-semibold text-gray-900 dark:border-pitch-700 dark:bg-pitch-900 dark:text-slate-100"
+                          // Fills the cell so the status color is the box; the
+                          // spinner arrows are hidden so the number centers.
+                          className="block w-full appearance-none rounded-none border border-transparent bg-transparent px-1 py-1 text-center font-semibold text-gray-900 outline-none [-moz-appearance:textfield] placeholder:text-gray-400 hover:border-gray-300 focus:border-green-600 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-pitch-700 dark:focus:border-green-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                       </td>
                     );
