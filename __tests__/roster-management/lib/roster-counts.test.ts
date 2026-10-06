@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeRosterCounts } from "@/lib/roster-management/roster-counts";
+import { computeRosterCounts, sectionSlotTotals } from "@/lib/roster-management/roster-counts";
 import type { SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
 const PLAYERS: Record<string, SleeperPlayer> = {
@@ -65,5 +65,17 @@ describe("computeRosterCounts", () => {
     };
     const counts = computeRosterCounts(roster, PLAYERS, ROSTER_POSITIONS, { taxi_slots: 4 });
     expect(counts.taxi).toEqual({ used: 0, total: 4 });
+  });
+});
+
+describe("sectionSlotTotals", () => {
+  it("counts starter and bench slots from roster_positions and taxi/IR from settings", () => {
+    expect(sectionSlotTotals(ROSTER_POSITIONS, { taxi_slots: 4, reserve_slots: 2 })).toEqual({
+      Starting: 5, Bench: 3, Taxi: 4, IR: 2,
+    });
+  });
+
+  it("does not count TAXI or IR entries in roster_positions as starter slots", () => {
+    expect(sectionSlotTotals(["QB", "BN", "TAXI", "IR"], {}).Starting).toBe(1);
   });
 });

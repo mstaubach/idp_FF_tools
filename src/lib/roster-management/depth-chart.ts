@@ -1,3 +1,4 @@
+import type { PlanSection, RosterPlan } from "./plan";
 import type { SleeperPlayer, SleeperRoster } from "./types";
 
 // Entries in roster_positions that represent slot types, not player positions.
@@ -96,23 +97,21 @@ export type DepthChartGrid = {
   sections: DepthChartSection[];
 };
 
-function buildDisplayNames(
-  playerIds: string[],
-  players: Record<string, SleeperPlayer>,
-): Map<string, string> {
-  const result = new Map<string, string>();
-  for (const id of playerIds) {
-    const p = players[id];
-    if (!p?.last_name) continue;
-    result.set(id, p.first_name ? `${p.first_name} ${p.last_name}` : p.last_name);
-  }
-  return result;
+export function playerDisplayName(player: SleeperPlayer | undefined): string {
+  if (!player?.last_name) return "";
+  return player.first_name ? `${player.first_name} ${player.last_name}` : player.last_name;
 }
 
-// Player ID -> slot type for each filled starter slot. Sleeper orders
-// roster.starters to line up with the non-bench entries of roster_positions.
+const NON_STARTER_SLOTS = new Set(["BN", "TAXI", "IR"]);
+
+// The starting lineup's slot types, in the order Sleeper fills roster.starters.
+export function starterSlotTypes(rosterPositions: string[]): string[] {
+  return rosterPositions.filter((p) => !NON_STARTER_SLOTS.has(p));
+}
+
+// Player ID -> slot type for each filled starter slot.
 function deriveStarterSlots(roster: SleeperRoster, rosterPositions: string[]): Map<string, string> {
-  const slots = rosterPositions.filter((p) => p !== "BN");
+  const slots = starterSlotTypes(rosterPositions);
   const result = new Map<string, string>();
   roster.starters.forEach((id, i) => {
     if (id !== "0" && slots[i]) result.set(id, slots[i]);
@@ -120,44 +119,43 @@ function deriveStarterSlots(roster: SleeperRoster, rosterPositions: string[]): M
   return result;
 }
 
-function sectionEligiblePositions(
-  player: SleeperPlayer,
-  positions: string[],
-  label: DepthChartSection["label"],
-): string[] {
-  const eligible = derivePlayerEligiblePositions(player, positions);
-  return label === "Starting" ? eligible : eligible.filter((p) => p !== FLEX_COLUMN);
+// Whether a player with these eligible columns may sit in `position` within
+// `section`. Flex is a starting slot, so it's only valid in Starting.
+export function canPlace(
+  eligiblePositions: readonly string[],
+  section: PlanSection,
+  position: string,
+): boolean {
+  if (position === FLEX_COLUMN && section !== "Starting") return false;
+  return eligiblePositions.includes(position);
 }
 
 function buildSection(
-  label: DepthChartSection["label"],
+  label: PlanSection,
   playerIds: string[],
   positions: string[],
   players: Record<string, SleeperPlayer>,
-  displayNames: Map<string, string>,
-  overrides: Record<string, string>,
+  planPositions: Record<string, string>,
   starterSlots: Map<string, string>,
+  showEmpty: boolean,
 ): DepthChartSection | null {
-  // Discard empty Sleeper sentinel ("0") and unknown player IDs.
-  const valid = playerIds.filter((id) => id !== "0" && players[id]);
-  if (valid.length === 0) return null;
-
   const byPosition = new Map<string, string[]>();
-  for (const id of valid) {
+  for (const id of playerIds) {
     const player = players[id];
-    const eligiblePositions = sectionEligiblePositions(player, positions, label);
-    if (eligiblePositions.length === 0) continue;
+    const eligiblePositions = derivePlayerEligiblePositions(player, positions);
+    const placeable = eligiblePositions.filter((pos) => canPlace(eligiblePositions, label, pos));
+    if (placeable.length === 0) continue;
 
     const slotPos = label === "Starting" ? starterSlots.get(id) : undefined;
     const defaultPos =
       slotPos === FLEX_COLUMN ? slotPos : normalizePosition(player.position ?? null);
-    const overridePos = overrides[id];
+    const planPos = planPositions[id];
     const assignedPos =
-      overridePos && eligiblePositions.includes(overridePos)
-        ? overridePos
-        : defaultPos && eligiblePositions.includes(defaultPos)
+      planPos && placeable.includes(planPos)
+        ? planPos
+        : defaultPos && placeable.includes(defaultPos)
           ? defaultPos
-          : eligiblePositions[0];
+          : placeable[0];
 
     const group = byPosition.get(assignedPos) ?? [];
     group.push(id);
@@ -168,16 +166,17 @@ function buildSection(
     0,
     ...positions.map((p) => byPosition.get(p)?.length ?? 0),
   );
-  if (maxRows === 0) return null;
+  // An empty row keeps the section on screen as a drop target.
+  if (maxRows === 0 && !showEmpty) return null;
 
-  const rows: (DepthChartCell | null)[][] = Array.from({ length: maxRows }, (_, r) =>
+  const rows: (DepthChartCell | null)[][] = Array.from({ length: Math.max(maxRows, 1) }, (_, r) =>
     positions.map((pos) => {
       const id = byPosition.get(pos)?.[r];
       if (id === undefined) return null;
       return {
         playerId: id,
-        displayName: displayNames.get(id) ?? "",
-        eligiblePositions: sectionEligiblePositions(players[id], positions, label),
+        displayName: playerDisplayName(players[id]),
+        eligiblePositions: derivePlayerEligiblePositions(players[id], positions),
       };
     }),
   );
@@ -185,34 +184,58 @@ function buildSection(
   return { label, rows };
 }
 
+// Local stand-in for plan.ts's EMPTY_PLAN: plan.ts imports this module, so
+// only types flow the other way.
+const NO_PLAN: RosterPlan = { positions: {}, sections: {}, cut: [] };
+
+export type BuildDepthChartOptions = {
+  rosterPositions?: string[]; // league roster_positions, used to find the flex starter
+  plan?: RosterPlan;
+  showEmpty?: PlanSection[]; // sections to render even with no players
+};
+
 export function buildDepthChart(
   roster: SleeperRoster,
   players: Record<string, SleeperPlayer>,
   positions: string[],
-  overrides: Record<string, string> = {},
-  rosterPositions: string[] = [],
+  { rosterPositions = [], plan = NO_PLAN, showEmpty = [] }: BuildDepthChartOptions = {},
 ): DepthChartGrid {
-  const bench = deriveBenchIds(roster);
   const starterSlots = deriveStarterSlots(roster, rosterPositions);
+  const cut = new Set(plan.cut);
 
-  // Build the full-name lookup once across every section's players.
-  // Deduplicate because roster.players already includes taxi/reserve members.
-  const allIds = [...new Set([...roster.players, ...(roster.taxi ?? []), ...(roster.reserve ?? [])])];
-  const displayNames = buildDisplayNames(allIds, players);
+  // Sleeper's sections first, then apply the plan's moves. Iterating in
+  // section order means a player moved into a section lands after the
+  // players already there.
+  const sleeperSections: Array<[PlanSection, string[]]> = [
+    ["Starting", roster.starters],
+    ["Bench", deriveBenchIds(roster)],
+    ["Taxi", roster.taxi ?? []],
+    ["IR", roster.reserve ?? []],
+  ];
+  const idsBySection = new Map<PlanSection, string[]>(
+    sleeperSections.map(([label]) => [label, []]),
+  );
+  for (const [label, ids] of sleeperSections) {
+    for (const id of ids) {
+      // Discard empty Sleeper sentinel ("0"), unknown player IDs, and cuts.
+      if (id === "0" || !players[id] || cut.has(id)) continue;
+      idsBySection.get(plan.sections[id] ?? label)!.push(id);
+    }
+  }
 
   const sections: DepthChartSection[] = [];
-
-  const starting = buildSection("Starting", roster.starters, positions, players, displayNames, overrides, starterSlots);
-  if (starting) sections.push(starting);
-
-  const benchSection = buildSection("Bench", bench, positions, players, displayNames, overrides, starterSlots);
-  if (benchSection) sections.push(benchSection);
-
-  const taxiSection = buildSection("Taxi", roster.taxi ?? [], positions, players, displayNames, overrides, starterSlots);
-  if (taxiSection) sections.push(taxiSection);
-
-  const irSection = buildSection("IR", roster.reserve ?? [], positions, players, displayNames, overrides, starterSlots);
-  if (irSection) sections.push(irSection);
+  for (const [label] of sleeperSections) {
+    const section = buildSection(
+      label,
+      idsBySection.get(label)!,
+      positions,
+      players,
+      plan.positions,
+      starterSlots,
+      showEmpty.includes(label),
+    );
+    if (section) sections.push(section);
+  }
 
   return { positions, sections };
 }

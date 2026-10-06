@@ -51,21 +51,67 @@ describe("DepthChartTable", () => {
     expect(screen.getByText("Nik Bonitto").getAttribute("data-draggable")).toBe("true");
   });
 
-  it("does not mark a single-position player's cell as draggable", () => {
+  it("marks every player's cell as draggable so they can change sections", () => {
     render(
       <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
     );
-    expect(screen.getByText("Justin Herbert").getAttribute("data-draggable")).toBeNull();
+    expect(screen.getByText("Justin Herbert").getAttribute("data-draggable")).toBe("true");
   });
 
-  it("shows no reset control when there are no saved corrections", () => {
+  it("cuts a player out of the chart and lists them under Cut", () => {
+    const { container } = render(
+      <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
+    expect(container.querySelector("table")?.textContent).not.toContain("Justin Herbert");
+    expect(screen.getByRole("columnheader", { name: "QB: 0" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Cut players" }).textContent).toContain("Justin Herbert");
+  });
+
+  it("restores a cut player to the chart", () => {
+    const { container } = render(
+      <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restore Justin Herbert" }));
+    expect(container.querySelector("table")?.textContent).toContain("Justin Herbert");
+    expect(screen.queryByRole("region", { name: "Cut players" })).toBeNull();
+  });
+
+  it("saves the plan to storage and reloads it", () => {
     render(
       <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
     );
-    expect(screen.queryByRole("button", { name: "Reset corrections" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
+    expect(JSON.parse(window.localStorage.getItem("roster-mgmt:plan:league1:1")!).cut).toEqual(["1"]);
+
+    cleanup();
+    render(
+      <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+    );
+    expect(screen.getByRole("region", { name: "Cut players" }).textContent).toContain("Justin Herbert");
   });
 
-  it("renders a loaded correction in its overridden column", () => {
+  it("renders an empty Taxi row as a drop target when the league has taxi slots", () => {
+    const { container } = render(
+      <DepthChartTable
+        roster={ROSTER} players={PLAYERS} positions={POSITIONS}
+        rosterPositions={["QB", "LB", "BN"]} settings={{ taxi_slots: 3 }}
+        leagueId="league1" rosterId={1}
+      />,
+    );
+    expect(container.querySelectorAll('td[data-section="Taxi"]')).toHaveLength(POSITIONS.length);
+    expect(container.querySelector('td[data-section="IR"]')).toBeNull();
+  });
+
+  it("shows no reset control when there is no saved plan", () => {
+    render(
+      <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+    );
+    expect(screen.queryByRole("button", { name: "Reset plan" })).toBeNull();
+  });
+
+  it("carries over a column correction saved before plans existed", () => {
     window.localStorage.setItem("roster-mgmt:overrides:league1:1", JSON.stringify({ "9": "DL" }));
     const { container } = render(
       <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
@@ -76,14 +122,18 @@ describe("DepthChartTable", () => {
     expect(lbCell?.textContent).not.toContain("Nik Bonitto");
   });
 
-  it("shows and clears a reset control when a correction is loaded from storage", () => {
+  it("resets the plan and clears both the plan and legacy storage keys", () => {
     window.localStorage.setItem("roster-mgmt:overrides:league1:1", JSON.stringify({ "9": "DL" }));
     render(
       <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
     );
-    const resetButton = screen.getByRole("button", { name: "Reset corrections" });
-    fireEvent.click(resetButton);
-    expect(window.localStorage.getItem("roster-mgmt:overrides:league1:1")).toBe(JSON.stringify({}));
-    expect(screen.queryByRole("button", { name: "Reset corrections" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset plan" }));
+    expect(JSON.parse(window.localStorage.getItem("roster-mgmt:plan:league1:1")!)).toEqual({
+      positions: {}, sections: {}, cut: [],
+    });
+    expect(window.localStorage.getItem("roster-mgmt:overrides:league1:1")).toBeNull();
+    expect(screen.getByText("Justin Herbert")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reset plan" })).toBeNull();
   });
 });
