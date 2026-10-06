@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import {
   buildDepthChart,
+  countActiveByPosition,
   type DepthChartCell,
   type DepthChartSection,
 } from "@/lib/roster-management/depth-chart";
@@ -136,6 +137,7 @@ export default function DepthChartTable({
     () => buildDepthChart(roster, players, positions, overrides),
     [roster, players, positions, overrides],
   );
+  const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -191,7 +193,7 @@ export default function DepthChartTable({
                     key={pos}
                     className="border-b border-l border-gray-200 bg-green-700 px-4 py-2.5 text-center font-bold text-white dark:border-pitch-700"
                   >
-                    {pos}
+                    {pos}: {activeCounts[pos]}
                   </th>
                 ))}
               </tr>

@@ -176,3 +176,18 @@ export function buildDepthChart(
 
   return { positions, sections };
 }
+
+// Players per column across the Starting and Bench sections (taxi and IR are
+// excluded). Counted from the built grid so drag-and-drop corrections apply.
+export function countActiveByPosition(grid: DepthChartGrid): Record<string, number> {
+  const counts: Record<string, number> = Object.fromEntries(grid.positions.map((p) => [p, 0]));
+  for (const section of grid.sections) {
+    if (section.label !== "Starting" && section.label !== "Bench") continue;
+    for (const row of section.rows) {
+      row.forEach((cell, ci) => {
+        if (cell) counts[grid.positions[ci]] += 1;
+      });
+    }
+  }
+  return counts;
+}

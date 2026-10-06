@@ -27,6 +27,14 @@ describe("DepthChartTable", () => {
     expect(screen.getByText("Nik Bonitto")).toBeTruthy();
   });
 
+  it("shows the Starting + Bench total next to each position header", () => {
+    render(
+      <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+    );
+    const headers = screen.getAllByRole("columnheader").map((th) => th.textContent);
+    expect(headers).toEqual(["Rank", "QB: 1", "DL: 0", "LB: 1"]);
+  });
+
   it("marks a dual-eligible player's cell as draggable", () => {
     render(
       <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,

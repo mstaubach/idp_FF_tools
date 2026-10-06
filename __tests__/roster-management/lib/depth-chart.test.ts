@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildDepthChart,
+  countActiveByPosition,
   derivePositionColumns,
   derivePlayerEligiblePositions,
   normalizePosition,
@@ -261,5 +262,37 @@ describe("buildDepthChart", () => {
     expect(cell?.displayName).toBe("Kyle Juszczyk");
     expect(cell?.eligiblePositions).toEqual(["RB", "TE"]);
     expect(starting.rows[0][POSITIONS.indexOf("TE")]).toBeNull();
+  });
+});
+
+// ── countActiveByPosition ──────────────────────────────────────────────────
+
+describe("countActiveByPosition", () => {
+  // Starting: QB "1", LB "9". Bench: RB "2", WR "3". Taxi: RB "10". IR: TE "4".
+  const roster: SleeperRoster = {
+    roster_id: 1, owner_id: "u1",
+    starters: ["1", "9"], players: ["1", "2", "3", "9", "10", "4"], taxi: ["10"], reserve: ["4"],
+  };
+
+  it("sums Starting and Bench players per column, excluding taxi and IR", () => {
+    expect(countActiveByPosition(buildDepthChart(roster, PLAYERS, POSITIONS))).toEqual({
+      QB: 1, RB: 1, WR: 1, TE: 0, DL: 0, LB: 1, DB: 0,
+    });
+  });
+
+  it("returns zero for every column when the grid is empty", () => {
+    const empty: SleeperRoster = {
+      roster_id: 1, owner_id: "u1", starters: [], players: [], taxi: null, reserve: null,
+    };
+    expect(countActiveByPosition(buildDepthChart(empty, PLAYERS, POSITIONS))).toEqual(
+      Object.fromEntries(POSITIONS.map((p) => [p, 0])),
+    );
+  });
+
+  it("follows a drag-and-drop override into the new column", () => {
+    const base = countActiveByPosition(buildDepthChart(roster, PLAYERS, POSITIONS));
+    const moved = countActiveByPosition(buildDepthChart(roster, PLAYERS, POSITIONS, { "9": "DL" }));
+    expect(moved.LB).toBe(base.LB - 1);
+    expect(moved.DL).toBe(base.DL + 1);
   });
 });
