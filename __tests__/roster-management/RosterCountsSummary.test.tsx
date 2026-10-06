@@ -63,18 +63,25 @@ describe("RosterCountsSummary", () => {
       ir: { used: 0, total: 0 },
     };
 
-    it("is green when the roster meets the target total", () => {
-      render(<RosterCountsSummary counts={counts} target={{ used: 15, total: 15 }} />);
-      const badge = screen.getByText("Target 15/15");
+    it("is green when the targets fill every slot", () => {
+      render(<RosterCountsSummary counts={counts} target={{ used: 32, total: 32 }} />);
+      const badge = screen.getByText("Target 32/32");
       expect(badge.className).toContain("text-green");
       expect(badge.getAttribute("title")).toBeNull();
     });
 
-    it("is red and says how many short when the roster is below the target total", () => {
-      render(<RosterCountsSummary counts={counts} target={{ used: 15, total: 18 }} />);
-      const badge = screen.getByTitle("3 short of target");
-      expect(badge.textContent).toBe("Target 15/18");
+    it("is red when the targets exceed the slots", () => {
+      render(<RosterCountsSummary counts={counts} target={{ used: 34, total: 32 }} />);
+      const badge = screen.getByTitle("2 over the limit");
+      expect(badge.textContent).toBe("Target 34/32");
       expect(badge.className).toContain("text-red");
+    });
+
+    it("is neutral while the targets are under the slots", () => {
+      render(<RosterCountsSummary counts={counts} target={{ used: 28, total: 32 }} />);
+      const badge = screen.getByText("Target 28/32");
+      expect(badge.className).not.toContain("text-green");
+      expect(badge.className).not.toContain("text-red");
     });
 
     it("is hidden when no target is passed", () => {
@@ -89,8 +96,8 @@ describe("RosterCountsSummary", () => {
         taxi: { used: 0, total: 0 },
         ir: { used: 0, total: 0 },
       };
-      render(<RosterCountsSummary counts={empty} target={{ used: 0, total: 2 }} />);
-      expect(screen.getByText("Target 0/2")).toBeTruthy();
+      render(<RosterCountsSummary counts={empty} target={{ used: 2, total: 0 }} />);
+      expect(screen.getByText("Target 2/0")).toBeTruthy();
     });
   });
 

@@ -215,12 +215,19 @@ describe("DepthChartTable", () => {
       expect(targetInput("LB").value).toBe("4");
     });
 
-    it("shows a Target badge totaling the targets once one is set", () => {
-      renderTable();
+    it("shows a Target badge summing the targets against the Starting + Bench slots", () => {
+      render(
+        <DepthChartTable
+          roster={ROSTER} players={PLAYERS} positions={POSITIONS}
+          rosterPositions={["QB", "LB", "BN", "BN"]} settings={{ taxi_slots: 3 }}
+          leagueId="league1" rosterId={1}
+        />,
+      );
       expect(screen.queryByText(/^Target \d/)).toBeNull();
       fireEvent.change(targetInput("QB"), { target: { value: "2" } });
-      fireEvent.change(targetInput("LB"), { target: { value: "2" } });
-      expect(screen.getByTitle("2 short of target").textContent).toBe("Target 2/4");
+      expect(screen.getByText("Target 2/4")).toBeTruthy();
+      fireEvent.change(targetInput("LB"), { target: { value: "3" } });
+      expect(screen.getByTitle("1 over the limit").textContent).toBe("Target 5/4");
     });
 
     it("keeps targets when the plan is reset", () => {

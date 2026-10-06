@@ -46,20 +46,18 @@ export function parseTargets(raw: string | null): PositionTargets {
   return result;
 }
 
-// Progress toward all targets combined, for the summary badge. Each position
-// counts only up to its own target, so a surplus at one position (or players
-// at untargeted positions) can't mask a shortfall at another: the total is met
-// only when every target is. Null until at least one target is set. Stored
-// targets for columns the league no longer has are left out, since they
-// aren't shown.
+// The targets summed against the Starting + Bench slots, for the summary
+// badge: it shows how much of the active roster the targets have planned out.
+// Null until at least one target is set. Stored targets for columns the
+// league no longer has are left out, since they aren't shown.
 export function totalTarget(
-  activeCounts: Record<string, number>,
   targets: PositionTargets,
+  positions: readonly string[],
+  slots: number,
 ): SlotCount | null {
-  const entries = Object.entries(targets).filter(([pos]) => pos in activeCounts);
-  if (entries.length === 0) return null;
-  return {
-    used: entries.reduce((sum, [pos, target]) => sum + Math.min(activeCounts[pos], target), 0),
-    total: entries.reduce((sum, [, target]) => sum + target, 0),
-  };
+  const values = Object.entries(targets)
+    .filter(([pos]) => positions.includes(pos))
+    .map(([, n]) => n);
+  if (values.length === 0) return null;
+  return { used: values.reduce((sum, n) => sum + n, 0), total: slots };
 }

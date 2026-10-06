@@ -1,5 +1,4 @@
 import type { RosterCounts, SlotCount } from "@/lib/roster-management/roster-counts";
-import { targetStatus } from "@/lib/roster-management/targets";
 
 const BADGE_CLASSES = "rounded-full border px-3 py-1 text-xs font-semibold";
 const NEUTRAL_CLASSES =
@@ -21,14 +20,15 @@ function Badge({ label, slot }: { label: string; slot: SlotCount }) {
   );
 }
 
-// Unlike the section badges, the target is a floor: falling short is the
-// problem, and meeting it is worth calling out.
+// Like the section badges, going over the slots is flagged red; filling them
+// exactly is called out green.
 function TargetBadge({ target }: { target: SlotCount }) {
-  const short = targetStatus(target.used, target.total) === "short";
+  const over = target.used - target.total;
+  const colors = over > 0 ? RED_CLASSES : over === 0 ? GREEN_CLASSES : NEUTRAL_CLASSES;
   return (
     <span
-      title={short ? `${target.total - target.used} short of target` : undefined}
-      className={`${BADGE_CLASSES} ${short ? RED_CLASSES : GREEN_CLASSES}`}
+      title={over > 0 ? `${over} over the limit` : undefined}
+      className={`${BADGE_CLASSES} ${colors}`}
     >
       Target {target.used}/{target.total}
     </span>
