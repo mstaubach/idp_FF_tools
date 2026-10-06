@@ -35,6 +35,15 @@ describe("DepthChartTable", () => {
     expect(headers).toEqual(["Rank", "QB: 1", "DL: 0", "LB: 1"]);
   });
 
+  it("labels the WRRB_FLEX column as Flex", () => {
+    render(
+      <DepthChartTable roster={ROSTER} players={PLAYERS} positions={[...POSITIONS, "WRRB_FLEX"]} leagueId="league1" rosterId={1} />,
+    );
+    const headers = screen.getAllByRole("columnheader").map((th) => th.textContent);
+    expect(headers).toContain("Flex: 0");
+    expect(headers.some((h) => h?.includes("WRRB_FLEX"))).toBe(false);
+  });
+
   it("marks a dual-eligible player's cell as draggable", () => {
     render(
       <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,

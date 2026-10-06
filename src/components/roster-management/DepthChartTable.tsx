@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import {
   buildDepthChart,
+  columnLabel,
   countActiveByPosition,
   type DepthChartCell,
   type DepthChartSection,
@@ -114,12 +115,14 @@ export default function DepthChartTable({
   roster,
   players,
   positions,
+  rosterPositions = [],
   leagueId,
   rosterId,
 }: {
   roster: SleeperRoster;
   players: Record<string, SleeperPlayer>;
   positions: string[];
+  rosterPositions?: string[];
   leagueId: string;
   rosterId: number;
 }) {
@@ -134,8 +137,8 @@ export default function DepthChartTable({
   }, [leagueId, rosterId]);
 
   const grid = useMemo(
-    () => buildDepthChart(roster, players, positions, overrides),
-    [roster, players, positions, overrides],
+    () => buildDepthChart(roster, players, positions, overrides, rosterPositions),
+    [roster, players, positions, overrides, rosterPositions],
   );
   const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
 
@@ -193,7 +196,7 @@ export default function DepthChartTable({
                     key={pos}
                     className="border-b border-l border-gray-200 bg-green-700 px-4 py-2.5 text-center font-bold text-white dark:border-pitch-700"
                   >
-                    {pos}: {activeCounts[pos]}
+                    {columnLabel(pos)}: {activeCounts[pos]}
                   </th>
                 ))}
               </tr>

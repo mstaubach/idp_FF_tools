@@ -13,6 +13,17 @@ const POSITION_MAP: Record<string, string> = {
   OLB: "LB", ILB: "LB", MLB: "LB",
 };
 
+// Sleeper's WR/RB flex slot. Unlike the other flex slot types it gets its own
+// column, which only starters can occupy.
+export const FLEX_COLUMN = "WRRB_FLEX";
+const FLEX_ELIGIBLE = new Set(["WR", "RB"]);
+
+const COLUMN_LABELS: Record<string, string> = { [FLEX_COLUMN]: "Flex" };
+
+export function columnLabel(position: string): string {
+  return COLUMN_LABELS[position] ?? position;
+}
+
 export function derivePositionColumns(rosterPositions: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
@@ -52,6 +63,10 @@ export function derivePlayerEligiblePositions(
       seen.add(normalized);
       result.push(normalized);
     }
+  }
+  // Flex goes last so it's never picked as a fallback default column.
+  if (positions.includes(FLEX_COLUMN) && result.some((p) => FLEX_ELIGIBLE.has(p))) {
+    result.push(FLEX_COLUMN);
   }
   return result;
 }
@@ -94,6 +109,26 @@ function buildDisplayNames(
   return result;
 }
 
+// Player ID -> slot type for each filled starter slot. Sleeper orders
+// roster.starters to line up with the non-bench entries of roster_positions.
+function deriveStarterSlots(roster: SleeperRoster, rosterPositions: string[]): Map<string, string> {
+  const slots = rosterPositions.filter((p) => p !== "BN");
+  const result = new Map<string, string>();
+  roster.starters.forEach((id, i) => {
+    if (id !== "0" && slots[i]) result.set(id, slots[i]);
+  });
+  return result;
+}
+
+function sectionEligiblePositions(
+  player: SleeperPlayer,
+  positions: string[],
+  label: DepthChartSection["label"],
+): string[] {
+  const eligible = derivePlayerEligiblePositions(player, positions);
+  return label === "Starting" ? eligible : eligible.filter((p) => p !== FLEX_COLUMN);
+}
+
 function buildSection(
   label: DepthChartSection["label"],
   playerIds: string[],
@@ -101,6 +136,7 @@ function buildSection(
   players: Record<string, SleeperPlayer>,
   displayNames: Map<string, string>,
   overrides: Record<string, string>,
+  starterSlots: Map<string, string>,
 ): DepthChartSection | null {
   // Discard empty Sleeper sentinel ("0") and unknown player IDs.
   const valid = playerIds.filter((id) => id !== "0" && players[id]);
@@ -109,10 +145,12 @@ function buildSection(
   const byPosition = new Map<string, string[]>();
   for (const id of valid) {
     const player = players[id];
-    const eligiblePositions = derivePlayerEligiblePositions(player, positions);
+    const eligiblePositions = sectionEligiblePositions(player, positions, label);
     if (eligiblePositions.length === 0) continue;
 
-    const defaultPos = normalizePosition(player.position ?? null);
+    const slotPos = label === "Starting" ? starterSlots.get(id) : undefined;
+    const defaultPos =
+      slotPos === FLEX_COLUMN ? slotPos : normalizePosition(player.position ?? null);
     const overridePos = overrides[id];
     const assignedPos =
       overridePos && eligiblePositions.includes(overridePos)
@@ -139,7 +177,7 @@ function buildSection(
       return {
         playerId: id,
         displayName: displayNames.get(id) ?? "",
-        eligiblePositions: derivePlayerEligiblePositions(players[id], positions),
+        eligiblePositions: sectionEligiblePositions(players[id], positions, label),
       };
     }),
   );
@@ -152,8 +190,10 @@ export function buildDepthChart(
   players: Record<string, SleeperPlayer>,
   positions: string[],
   overrides: Record<string, string> = {},
+  rosterPositions: string[] = [],
 ): DepthChartGrid {
   const bench = deriveBenchIds(roster);
+  const starterSlots = deriveStarterSlots(roster, rosterPositions);
 
   // Build the full-name lookup once across every section's players.
   // Deduplicate because roster.players already includes taxi/reserve members.
@@ -162,16 +202,16 @@ export function buildDepthChart(
 
   const sections: DepthChartSection[] = [];
 
-  const starting = buildSection("Starting", roster.starters, positions, players, displayNames, overrides);
+  const starting = buildSection("Starting", roster.starters, positions, players, displayNames, overrides, starterSlots);
   if (starting) sections.push(starting);
 
-  const benchSection = buildSection("Bench", bench, positions, players, displayNames, overrides);
+  const benchSection = buildSection("Bench", bench, positions, players, displayNames, overrides, starterSlots);
   if (benchSection) sections.push(benchSection);
 
-  const taxiSection = buildSection("Taxi", roster.taxi ?? [], positions, players, displayNames, overrides);
+  const taxiSection = buildSection("Taxi", roster.taxi ?? [], positions, players, displayNames, overrides, starterSlots);
   if (taxiSection) sections.push(taxiSection);
 
-  const irSection = buildSection("IR", roster.reserve ?? [], positions, players, displayNames, overrides);
+  const irSection = buildSection("IR", roster.reserve ?? [], positions, players, displayNames, overrides, starterSlots);
   if (irSection) sections.push(irSection);
 
   return { positions, sections };

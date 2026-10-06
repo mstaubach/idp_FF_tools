@@ -106,6 +106,7 @@ export default async function RosterPage({
         roster={roster}
         players={rosterPlayers}
         positions={positions}
+        rosterPositions={league.roster_positions}
         leagueId={leagueId}
         rosterId={rosterIdNum}
       />
