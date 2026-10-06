@@ -5,8 +5,10 @@ import {
   getRosters,
   getUsers,
   getPlayers,
+  getTradedPicks,
 } from "@/lib/roster-management/sleeper";
 import { derivePositionColumns } from "@/lib/roster-management/depth-chart";
+import { deriveOwnedPicks, nextDraftSeason } from "@/lib/roster-management/picks";
 import type { SleeperPlayer } from "@/lib/roster-management/types";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +21,12 @@ export default async function RosterPage({
   const { leagueId, rosterId } = await params;
   const rosterIdNum = Number(rosterId);
 
-  const [league, rosters, users, players] = await Promise.all([
+  const [league, rosters, users, players, tradedPicks] = await Promise.all([
     getLeague(leagueId),
     getRosters(leagueId),
     getUsers(leagueId),
     getPlayers(),
+    getTradedPicks(leagueId),
   ]);
 
   if (!league) {
@@ -66,6 +69,23 @@ export default async function RosterPage({
 
   const positions = derivePositionColumns(league.roster_positions);
 
+  // Leagues without a draft_rounds setting get no picks panel.
+  const draftRounds = league.settings.draft_rounds ?? 0;
+  const draftSeason = draftRounds > 0 ? nextDraftSeason(league) : undefined;
+  const ownedPicks = draftSeason
+    ? deriveOwnedPicks({
+        rosterId: rosterIdNum,
+        rosterIds: rosters.map((r) => r.roster_id),
+        tradedPicks,
+        season: draftSeason,
+        rounds: draftRounds,
+      })
+    : [];
+  const teamNames: Record<number, string> = {};
+  for (const r of rosters) {
+    teamNames[r.roster_id] = r.owner_id ? (userMap.get(r.owner_id) ?? "Unknown") : "Unowned";
+  }
+
   // roster.starters is intentionally omitted here: Sleeper always includes
   // starters within roster.players, so this union already covers them.
   const rosterPlayerIds = new Set([
@@ -103,6 +123,9 @@ export default async function RosterPage({
         positions={positions}
         rosterPositions={league.roster_positions}
         settings={league.settings}
+        picks={ownedPicks}
+        draftSeason={draftSeason}
+        teamNames={teamNames}
         leagueId={leagueId}
         rosterId={rosterIdNum}
       />
