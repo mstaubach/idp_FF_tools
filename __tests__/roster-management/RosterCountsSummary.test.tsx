@@ -42,4 +42,27 @@ describe("RosterCountsSummary", () => {
     const { container } = render(<RosterCountsSummary counts={counts} />);
     expect(container.firstChild).toBeNull();
   });
+
+  it("flags a section that is over its slot limit", () => {
+    const counts: RosterCounts = {
+      starting: { used: 9, total: 9 },
+      bench: { used: 6, total: 8 },
+      taxi: { used: 5, total: 4 },
+      ir: { used: 0, total: 2 },
+    };
+    render(<RosterCountsSummary counts={counts} />);
+    expect(screen.getByTitle("1 over the limit").textContent).toBe("Taxi 5/4");
+    expect(screen.queryAllByTitle(/over the limit/)).toHaveLength(1);
+  });
+
+  it("shows a section with no slots if players are still in it", () => {
+    const counts: RosterCounts = {
+      starting: { used: 9, total: 9 },
+      bench: { used: 6, total: 8 },
+      taxi: { used: 1, total: 0 },
+      ir: { used: 0, total: 0 },
+    };
+    render(<RosterCountsSummary counts={counts} />);
+    expect(screen.getByText("Taxi 1/0")).toBeTruthy();
+  });
 });

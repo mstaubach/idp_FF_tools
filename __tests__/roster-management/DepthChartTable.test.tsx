@@ -92,6 +92,19 @@ describe("DepthChartTable", () => {
     expect(screen.getByRole("region", { name: "Cut players" }).textContent).toContain("Justin Herbert");
   });
 
+  it("updates the section badges as the plan changes", () => {
+    render(
+      <DepthChartTable
+        roster={ROSTER} players={PLAYERS} positions={POSITIONS}
+        rosterPositions={["QB", "LB", "BN"]} settings={{}}
+        leagueId="league1" rosterId={1}
+      />,
+    );
+    expect(screen.getByText("Starting 2/2")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
+    expect(screen.getByText("Starting 1/2")).toBeTruthy();
+  });
+
   it("renders an empty Taxi row as a drop target when the league has taxi slots", () => {
     const { container } = render(
       <DepthChartTable

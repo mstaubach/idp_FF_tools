@@ -31,7 +31,8 @@ import {
   type PlanSection,
   type RosterPlan,
 } from "@/lib/roster-management/plan";
-import { sectionSlotTotals } from "@/lib/roster-management/roster-counts";
+import RosterCountsSummary from "@/components/roster-management/RosterCountsSummary";
+import { computeRosterCounts, sectionSlotTotals } from "@/lib/roster-management/roster-counts";
 import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
 const NO_ROSTER_POSITIONS: string[] = [];
@@ -228,14 +229,18 @@ export default function DepthChartTable({
     setPlan(loadPlan(leagueId, rosterId));
   }, [leagueId, rosterId]);
 
+  const slotTotals = useMemo(
+    () => sectionSlotTotals(rosterPositions, settings),
+    [rosterPositions, settings],
+  );
   const grid = useMemo(() => {
     // Sections the league has slots for stay on screen as drop targets even
     // when empty.
-    const totals = sectionSlotTotals(rosterPositions, settings);
-    const showEmpty = (Object.keys(totals) as PlanSection[]).filter((s) => totals[s] > 0);
+    const showEmpty = (Object.keys(slotTotals) as PlanSection[]).filter((s) => slotTotals[s] > 0);
     return buildDepthChart(roster, players, positions, { rosterPositions, plan, showEmpty });
-  }, [roster, players, positions, rosterPositions, settings, plan]);
+  }, [roster, players, positions, rosterPositions, slotTotals, plan]);
   const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
+  const sectionCounts = useMemo(() => computeRosterCounts(grid, slotTotals), [grid, slotTotals]);
   // Cut players who have since left the roster in Sleeper aren't shown.
   const cutIds = plan.cut.filter((id) => players[id]);
 
@@ -263,6 +268,7 @@ export default function DepthChartTable({
 
   return (
     <div className="space-y-2">
+      <RosterCountsSummary counts={sectionCounts} />
       {!isPlanEmpty(plan) && (
         <button
           type="button"

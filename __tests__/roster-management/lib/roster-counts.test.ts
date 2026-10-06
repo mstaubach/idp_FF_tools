@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { buildDepthChart, derivePositionColumns } from "@/lib/roster-management/depth-chart";
+import { EMPTY_PLAN, type RosterPlan } from "@/lib/roster-management/plan";
 import { computeRosterCounts, sectionSlotTotals } from "@/lib/roster-management/roster-counts";
-import type { SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
+import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
 const PLAYERS: Record<string, SleeperPlayer> = {
   "1": { player_id: "1", first_name: "Justin", last_name: "Herbert", position: "QB" },
@@ -11,14 +13,23 @@ const PLAYERS: Record<string, SleeperPlayer> = {
 
 const ROSTER_POSITIONS = ["QB", "RB", "WR", "TE", "FLEX", "BN", "BN", "BN"];
 
+function countsFor(
+  roster: SleeperRoster,
+  settings: SleeperLeague["settings"],
+  plan: RosterPlan = EMPTY_PLAN,
+) {
+  const grid = buildDepthChart(roster, PLAYERS, derivePositionColumns(ROSTER_POSITIONS), { plan });
+  return computeRosterCounts(grid, sectionSlotTotals(ROSTER_POSITIONS, settings));
+}
+
 describe("computeRosterCounts", () => {
-  it("counts starting slots used vs total, ignoring empty '0' slots", () => {
+  it("counts starting players vs the league's starter slots, ignoring empty '0' slots", () => {
     const roster: SleeperRoster = {
       roster_id: 1, owner_id: "u1",
       starters: ["1", "2", "0"], players: ["1", "2"], taxi: null, reserve: null,
     };
-    const counts = computeRosterCounts(roster, PLAYERS, ROSTER_POSITIONS, {});
-    expect(counts.starting).toEqual({ used: 2, total: 3 });
+    const counts = countsFor(roster, {});
+    expect(counts.starting).toEqual({ used: 2, total: 5 });
   });
 
   it("counts bench slots from players not in starters, taxi, or reserve", () => {
@@ -26,7 +37,7 @@ describe("computeRosterCounts", () => {
       roster_id: 1, owner_id: "u1",
       starters: ["1"], players: ["1", "3", "4"], taxi: null, reserve: null,
     };
-    const counts = computeRosterCounts(roster, PLAYERS, ROSTER_POSITIONS, {});
+    const counts = countsFor(roster, {});
     expect(counts.bench).toEqual({ used: 2, total: 3 });
   });
 
@@ -35,7 +46,7 @@ describe("computeRosterCounts", () => {
       roster_id: 1, owner_id: "u1",
       starters: [], players: ["3"], taxi: ["3"], reserve: null,
     };
-    const counts = computeRosterCounts(roster, PLAYERS, ROSTER_POSITIONS, { taxi_slots: 4 });
+    const counts = countsFor(roster, { taxi_slots: 4 });
     expect(counts.taxi).toEqual({ used: 1, total: 4 });
   });
 
@@ -44,7 +55,7 @@ describe("computeRosterCounts", () => {
       roster_id: 1, owner_id: "u1",
       starters: [], players: ["4"], taxi: null, reserve: ["4"],
     };
-    const counts = computeRosterCounts(roster, PLAYERS, ROSTER_POSITIONS, { reserve_slots: 2 });
+    const counts = countsFor(roster, { reserve_slots: 2 });
     expect(counts.ir).toEqual({ used: 1, total: 2 });
   });
 
@@ -53,7 +64,7 @@ describe("computeRosterCounts", () => {
       roster_id: 1, owner_id: "u1",
       starters: [], players: [], taxi: null, reserve: null,
     };
-    const counts = computeRosterCounts(roster, PLAYERS, ROSTER_POSITIONS, {});
+    const counts = countsFor(roster, {});
     expect(counts.taxi).toEqual({ used: 0, total: 0 });
     expect(counts.ir).toEqual({ used: 0, total: 0 });
   });
@@ -63,8 +74,27 @@ describe("computeRosterCounts", () => {
       roster_id: 1, owner_id: "u1",
       starters: [], players: [], taxi: ["999", "0"], reserve: null,
     };
-    const counts = computeRosterCounts(roster, PLAYERS, ROSTER_POSITIONS, { taxi_slots: 4 });
+    const counts = countsFor(roster, { taxi_slots: 4 });
     expect(counts.taxi).toEqual({ used: 0, total: 4 });
+  });
+});
+
+describe("computeRosterCounts with a plan", () => {
+  const roster: SleeperRoster = {
+    roster_id: 1, owner_id: "u1",
+    starters: ["1"], players: ["1", "2", "3", "4"], taxi: null, reserve: null,
+  };
+
+  it("counts players where the plan puts them", () => {
+    const counts = countsFor(roster, { taxi_slots: 1 }, { ...EMPTY_PLAN, sections: { "2": "Taxi", "3": "Taxi" } });
+    expect(counts.bench).toEqual({ used: 1, total: 3 });
+    expect(counts.taxi).toEqual({ used: 2, total: 1 });
+  });
+
+  it("does not count cut players", () => {
+    const counts = countsFor(roster, {}, { ...EMPTY_PLAN, cut: ["1", "4"] });
+    expect(counts.starting.used).toBe(0);
+    expect(counts.bench.used).toBe(2);
   });
 });
 
