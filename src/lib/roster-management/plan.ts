@@ -1,4 +1,4 @@
-import { canPlace, type DepthChartSection } from "./depth-chart";
+import type { DepthChartSection } from "./depth-chart";
 
 export type PlanSection = DepthChartSection["label"];
 
@@ -40,7 +40,7 @@ export type DropTarget = { section: PlanSection; position: string };
 
 // Returns the updated plan, or null when the drop is invalid or a no-op.
 export function applyDrop(plan: RosterPlan, drag: DragSource, target: DropTarget): RosterPlan | null {
-  if (!canPlace(drag.eligiblePositions, target.section, target.position)) return null;
+  if (!drag.eligiblePositions.includes(target.position)) return null;
   if (drag.section === target.section && drag.position === target.position) return null;
   if (drag.kind === "pick") {
     return { ...plan, picks: { ...plan.picks, [drag.id]: { ...target } } };

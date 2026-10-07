@@ -4,7 +4,7 @@ import type { SleeperPlayer, SleeperRoster } from "./types";
 
 // Entries in roster_positions that represent slot types, not player positions.
 const SLOT_ONLY = new Set([
-  "BN", "FLEX", "IDP_FLEX", "REC_FLEX", "SUPER_FLEX", "DEF", "TAXI", "IR",
+  "BN", "FLEX", "IDP_FLEX", "REC_FLEX", "SUPER_FLEX", "WRRB_FLEX", "DEF", "TAXI", "IR",
 ]);
 
 // Sleeper sometimes stores granular positions (DE, DT, CB, S, OLB, MLB).
@@ -14,17 +14,6 @@ const POSITION_MAP: Record<string, string> = {
   CB: "DB", S: "DB", SS: "DB", FS: "DB",
   OLB: "LB", ILB: "LB", MLB: "LB",
 };
-
-// Sleeper's WR/RB flex slot. Unlike the other flex slot types it gets its own
-// column, which only starters can occupy.
-export const FLEX_COLUMN = "WRRB_FLEX";
-const FLEX_ELIGIBLE = new Set(["WR", "RB"]);
-
-const COLUMN_LABELS: Record<string, string> = { [FLEX_COLUMN]: "Flex" };
-
-export function columnLabel(position: string): string {
-  return COLUMN_LABELS[position] ?? position;
-}
 
 export function derivePositionColumns(rosterPositions: string[]): string[] {
   const seen = new Set<string>();
@@ -65,10 +54,6 @@ export function derivePlayerEligiblePositions(
       seen.add(normalized);
       result.push(normalized);
     }
-  }
-  // Flex goes last so it's never picked as a fallback default column.
-  if (positions.includes(FLEX_COLUMN) && result.some((p) => FLEX_ELIGIBLE.has(p))) {
-    result.push(FLEX_COLUMN);
   }
   return result;
 }
@@ -113,34 +98,12 @@ export function starterSlotTypes(rosterPositions: string[]): string[] {
   return rosterPositions.filter((p) => !NON_STARTER_SLOTS.has(p));
 }
 
-// Player ID -> slot type for each filled starter slot.
-function deriveStarterSlots(roster: SleeperRoster, rosterPositions: string[]): Map<string, string> {
-  const slots = starterSlotTypes(rosterPositions);
-  const result = new Map<string, string>();
-  roster.starters.forEach((id, i) => {
-    if (id !== "0" && slots[i]) result.set(id, slots[i]);
-  });
-  return result;
-}
-
-// Whether a player with these eligible columns may sit in `position` within
-// `section`. Flex is a starting slot, so it's only valid in Starting.
-export function canPlace(
-  eligiblePositions: readonly string[],
-  section: PlanSection,
-  position: string,
-): boolean {
-  if (position === FLEX_COLUMN && section !== "Starting") return false;
-  return eligiblePositions.includes(position);
-}
-
 function buildSection(
   label: PlanSection,
   playerIds: string[],
   positions: string[],
   players: Record<string, SleeperPlayer>,
   planPositions: Record<string, string>,
-  starterSlots: Map<string, string>,
   placedPicks: Array<{ pick: DraftPick; position: string }>,
   showEmpty: boolean,
 ): DepthChartSection | null {
@@ -148,19 +111,16 @@ function buildSection(
   for (const id of playerIds) {
     const player = players[id];
     const eligiblePositions = derivePlayerEligiblePositions(player, positions);
-    const placeable = eligiblePositions.filter((pos) => canPlace(eligiblePositions, label, pos));
-    if (placeable.length === 0) continue;
+    if (eligiblePositions.length === 0) continue;
 
-    const slotPos = label === "Starting" ? starterSlots.get(id) : undefined;
-    const defaultPos =
-      slotPos === FLEX_COLUMN ? slotPos : normalizePosition(player.position ?? null);
+    const defaultPos = normalizePosition(player.position ?? null);
     const planPos = planPositions[id];
     const assignedPos =
-      planPos && placeable.includes(planPos)
+      planPos && eligiblePositions.includes(planPos)
         ? planPos
-        : defaultPos && placeable.includes(defaultPos)
+        : defaultPos && eligiblePositions.includes(defaultPos)
           ? defaultPos
-          : placeable[0];
+          : eligiblePositions[0];
 
     const group = byPosition.get(assignedPos) ?? [];
     group.push({
@@ -198,7 +158,6 @@ function buildSection(
 const NO_PLAN: RosterPlan = { positions: {}, sections: {}, cut: [], picks: {} };
 
 export type BuildDepthChartOptions = {
-  rosterPositions?: string[]; // league roster_positions, used to find the flex starter
   plan?: RosterPlan;
   picks?: DraftPick[]; // picks the roster owns; placed ones join the grid
   showEmpty?: PlanSection[]; // sections to render even with no players
@@ -208,9 +167,8 @@ export function buildDepthChart(
   roster: SleeperRoster,
   players: Record<string, SleeperPlayer>,
   positions: string[],
-  { rosterPositions = [], plan = NO_PLAN, picks = [], showEmpty = [] }: BuildDepthChartOptions = {},
+  { plan = NO_PLAN, picks = [], showEmpty = [] }: BuildDepthChartOptions = {},
 ): DepthChartGrid {
-  const starterSlots = deriveStarterSlots(roster, rosterPositions);
   const cut = new Set(plan.cut);
 
   // Sleeper's sections first, then apply the plan's moves. Iterating in
@@ -237,7 +195,7 @@ export function buildDepthChart(
   const picksBySection = new Map<PlanSection, Array<{ pick: DraftPick; position: string }>>();
   for (const pick of picks) {
     const placement = plan.picks[pick.id];
-    if (!placement || !canPlace(positions, placement.section, placement.position)) continue;
+    if (!placement || !positions.includes(placement.position)) continue;
     const group = picksBySection.get(placement.section) ?? [];
     group.push({ pick, position: placement.position });
     picksBySection.set(placement.section, group);
@@ -251,7 +209,6 @@ export function buildDepthChart(
       positions,
       players,
       plan.positions,
-      starterSlots,
       picksBySection.get(label) ?? [],
       showEmpty.includes(label),
     );
