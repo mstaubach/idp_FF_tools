@@ -26,6 +26,13 @@ updates:
       # remove this ignore.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 builds and typechecks, but typescript-eslint (bundled by
+      # eslint-config-next) only supports TS <6.1, so `npm run lint` exits with
+      # "typescript-eslint does not support TS 7.0". Support is tracked in
+      # typescript-eslint/typescript-eslint#10940. Recheck when a release
+      # widens its `typescript` peer range past 7, then remove this ignore.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # Keep the GitHub Actions used in workflows up to date too.
   - package-ecosystem: "github-actions"
