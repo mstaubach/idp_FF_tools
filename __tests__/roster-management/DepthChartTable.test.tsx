@@ -156,6 +156,80 @@ describe("DepthChartTable", () => {
     expect(screen.queryByRole("button", { name: "Reset plan" })).toBeNull();
   });
 
+  describe("position targets", () => {
+    const renderTable = () =>
+      render(
+        <DepthChartTable roster={ROSTER} players={PLAYERS} positions={POSITIONS} leagueId="league1" rosterId={1} />,
+      );
+    const targetInput = (label: string) =>
+      screen.getByRole("spinbutton", { name: `${label} target` }) as HTMLInputElement;
+    const targetCell = (label: string) => targetInput(label).closest("td")!;
+
+    it("renders an empty target input for each position", () => {
+      renderTable();
+      expect(screen.getByRole("rowheader", { name: "Target" })).toBeTruthy();
+      for (const pos of POSITIONS) {
+        expect(targetInput(pos).value).toBe("");
+        expect(targetCell(pos).dataset.status).toBeUndefined();
+      }
+    });
+
+    it("turns the target cell green when the position count reaches it", () => {
+      renderTable();
+      fireEvent.change(targetInput("QB"), { target: { value: "1" } });
+      expect(targetCell("QB").dataset.status).toBe("met");
+      expect(targetCell("QB").className).toContain("bg-green");
+    });
+
+    it("turns the target cell red when the position count is below it", () => {
+      renderTable();
+      fireEvent.change(targetInput("QB"), { target: { value: "3" } });
+      expect(targetCell("QB").dataset.status).toBe("short");
+      expect(targetCell("QB").className).toContain("bg-red");
+      expect(targetCell("QB").getAttribute("title")).toBe("2 short of target");
+    });
+
+    it("re-evaluates the target as the plan changes", () => {
+      renderTable();
+      fireEvent.change(targetInput("QB"), { target: { value: "1" } });
+      fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
+      expect(targetCell("QB").dataset.status).toBe("short");
+    });
+
+    it("saves targets to storage and reloads them", () => {
+      renderTable();
+      fireEvent.change(targetInput("LB"), { target: { value: "4" } });
+      expect(JSON.parse(window.localStorage.getItem("roster-mgmt:targets:league1:1")!)).toEqual({ LB: 4 });
+
+      cleanup();
+      renderTable();
+      expect(targetInput("LB").value).toBe("4");
+    });
+
+    it("shows a Target badge summing the targets against the Starting + Bench slots", () => {
+      render(
+        <DepthChartTable
+          roster={ROSTER} players={PLAYERS} positions={POSITIONS}
+          rosterPositions={["QB", "LB", "BN", "BN"]} settings={{ taxi_slots: 3 }}
+          leagueId="league1" rosterId={1}
+        />,
+      );
+      expect(screen.queryByText(/^Target \d/)).toBeNull();
+      fireEvent.change(targetInput("QB"), { target: { value: "2" } });
+      expect(screen.getByText("Target 2/4")).toBeTruthy();
+      fireEvent.change(targetInput("LB"), { target: { value: "3" } });
+      expect(screen.getByTitle("1 over the limit").textContent).toBe("Target 5/4");
+    });
+
+    it("keeps targets when the plan is reset", () => {
+      renderTable();
+      fireEvent.change(targetInput("QB"), { target: { value: "2" } });
+      fireEvent.click(screen.getByRole("button", { name: "Cut Justin Herbert" }));
+      fireEvent.click(screen.getByRole("button", { name: "Reset plan" }));
+      expect(targetInput("QB").value).toBe("2");
+    });
+  });
+
   describe("draft picks", () => {
     const PICKS: DraftPick[] = [
       { id: "2027:1:1", season: "2027", round: 1, originalRosterId: 1 },

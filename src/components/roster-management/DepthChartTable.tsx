@@ -35,6 +35,13 @@ import DraftPicksPanel, { PICK_PANEL_DROP } from "@/components/roster-management
 import RosterCountsSummary from "@/components/roster-management/RosterCountsSummary";
 import type { DraftPick } from "@/lib/roster-management/picks";
 import { computeRosterCounts, sectionSlotTotals } from "@/lib/roster-management/roster-counts";
+import {
+  parseTargets,
+  setTarget,
+  targetStatus,
+  totalTarget,
+  type PositionTargets,
+} from "@/lib/roster-management/targets";
 import type { SleeperLeague, SleeperPlayer, SleeperRoster } from "@/lib/roster-management/types";
 
 const NO_ROSTER_POSITIONS: string[] = [];
@@ -71,6 +78,33 @@ function savePlan(leagueId: string, rosterId: number, plan: RosterPlan) {
     // Private browsing or storage disabled - the plan just won't persist.
   }
 }
+
+// Stored apart from the plan so resetting the plan keeps the owner's targets.
+function targetsKey(leagueId: string, rosterId: number): string {
+  return `roster-mgmt:targets:${leagueId}:${rosterId}`;
+}
+
+function loadTargets(leagueId: string, rosterId: number): PositionTargets {
+  try {
+    return parseTargets(window.localStorage.getItem(targetsKey(leagueId, rosterId)));
+  } catch {
+    return {};
+  }
+}
+
+function saveTargets(leagueId: string, rosterId: number, targets: PositionTargets) {
+  try {
+    window.localStorage.setItem(targetsKey(leagueId, rosterId), JSON.stringify(targets));
+  } catch {
+    // Private browsing or storage disabled - targets just won't persist.
+  }
+}
+
+const TARGET_CELL_CLASSES = {
+  met: "bg-green-200 dark:bg-green-900/70",
+  short: "bg-red-200 dark:bg-red-900/70",
+  none: "bg-gray-50 dark:bg-pitch-800/60",
+};
 
 function DraggableCell({
   cell,
@@ -237,6 +271,7 @@ export default function DepthChartTable({
   rosterId: number;
 }) {
   const [plan, setPlan] = useState<RosterPlan>(EMPTY_PLAN);
+  const [targets, setTargets] = useState<PositionTargets>({});
 
   useEffect(() => {
     // Deferred to a post-mount effect (not the useState initializer) because
@@ -244,6 +279,7 @@ export default function DepthChartTable({
     // it here avoids an SSR/client hydration mismatch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlan(loadPlan(leagueId, rosterId));
+    setTargets(loadTargets(leagueId, rosterId));
   }, [leagueId, rosterId]);
 
   const slotTotals = useMemo(
@@ -258,6 +294,10 @@ export default function DepthChartTable({
   }, [roster, players, positions, slotTotals, plan, picks]);
   const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
   const sectionCounts = useMemo(() => computeRosterCounts(grid, slotTotals), [grid, slotTotals]);
+  const targetTotal = useMemo(
+    () => totalTarget(targets, grid.positions, slotTotals.Starting + slotTotals.Bench),
+    [targets, grid.positions, slotTotals],
+  );
   // Cut players who have since left the roster in Sleeper aren't shown.
   const cutIds = plan.cut.filter((id) => players[id]);
   const placedPickIds = new Set(
@@ -273,6 +313,13 @@ export default function DepthChartTable({
   function updatePlan(next: RosterPlan) {
     setPlan(next);
     savePlan(leagueId, rosterId, next);
+  }
+
+  function updateTarget(position: string, raw: string) {
+    const next = setTarget(targets, position, raw);
+    if (next === targets) return;
+    setTargets(next);
+    saveTargets(leagueId, rosterId, next);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -298,7 +345,7 @@ export default function DepthChartTable({
 
   return (
     <div className="space-y-2">
-      <RosterCountsSummary counts={sectionCounts} />
+      <RosterCountsSummary counts={sectionCounts} target={targetTotal} />
       {!isPlanEmpty(plan) && (
         <button
           type="button"
@@ -328,6 +375,45 @@ export default function DepthChartTable({
                       {pos}: {activeCounts[pos]}
                     </th>
                   ))}
+                </tr>
+                <tr>
+                  <th
+                    scope="row"
+                    className="border-b border-gray-200 bg-gray-50 px-4 py-1 text-center font-bold text-gray-700 dark:border-pitch-700 dark:bg-pitch-800/60 dark:text-slate-300"
+                  >
+                    Target
+                  </th>
+                  {grid.positions.map((pos) => {
+                    const status = targetStatus(activeCounts[pos], targets[pos]);
+                    return (
+                      <td
+                        key={pos}
+                        data-status={status ?? undefined}
+                        title={
+                          status === "short"
+                            ? `${targets[pos] - activeCounts[pos]} short of target`
+                            : undefined
+                        }
+                        className={`border-b border-l border-gray-200 p-0 text-center dark:border-pitch-700 ${
+                          TARGET_CELL_CLASSES[status ?? "none"]
+                        }`}
+                      >
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          inputMode="numeric"
+                          value={targets[pos] ?? ""}
+                          onChange={(e) => updateTarget(pos, e.target.value)}
+                          aria-label={`${pos} target`}
+                          placeholder="–"
+                          // Fills the cell so the status color is the box; the
+                          // spinner arrows are hidden so the number centers.
+                          className="block w-full appearance-none rounded-none border border-transparent bg-transparent px-1 py-1 text-center font-semibold text-gray-900 outline-none [-moz-appearance:textfield] placeholder:text-gray-400 hover:border-gray-300 focus:border-green-600 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-pitch-700 dark:focus:border-green-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </td>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
