@@ -21,7 +21,7 @@ npm run test:watch  # vitest watch mode
 
 Run a single test file: `npx vitest run __tests__/idp-checker/lib/matcher.test.ts`. Filter by name: `npx vitest run -t "fuzzy"`.
 
-CI (`.github/workflows`) runs **lint + build** on every PR/push, plus a gitleaks secret scan and an automated Claude code review. Note: CI does **not** run the test suite, so run `npm test` and `npm run typecheck` locally before pushing.
+CI (`.github/workflows`) runs **lint + build** on every PR/push, plus a gitleaks secret scan. Note: CI does **not** run the test suite, so run `npm test` and `npm run typecheck` locally before pushing.
 
 ## Architecture
 
