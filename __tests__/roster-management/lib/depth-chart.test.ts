@@ -1,8 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   buildDepthChart,
-  canPlace,
-  columnLabel,
   countActiveByPosition,
   derivePositionColumns,
   derivePlayerEligiblePositions,
@@ -27,6 +25,10 @@ describe("derivePositionColumns", () => {
 
   it("returns empty array when all entries are slot-only", () => {
     expect(derivePositionColumns(["BN", "FLEX", "TAXI"])).toEqual([]);
+  });
+
+  it("treats Sleeper's WR/RB flex slot as a slot, not a column", () => {
+    expect(derivePositionColumns(["QB", "RB", "WR", "WRRB_FLEX", "BN"])).toEqual(["QB", "RB", "WR"]);
   });
 });
 
@@ -301,71 +303,6 @@ describe("countActiveByPosition", () => {
   });
 });
 
-// ── Flex (WRRB_FLEX) column ────────────────────────────────────────────────
-
-describe("Flex column", () => {
-  const FLEX_POSITIONS = ["QB", "RB", "WR", "TE", "WRRB_FLEX"];
-  // Starter slot order lines up with roster.starters: QB, RB, WR, Flex.
-  const FLEX_ROSTER_POSITIONS = ["QB", "RB", "WR", "WRRB_FLEX", "BN", "BN"];
-
-  it("labels WRRB_FLEX as Flex and passes other columns through", () => {
-    expect(columnLabel("WRRB_FLEX")).toBe("Flex");
-    expect(columnLabel("QB")).toBe("QB");
-  });
-
-  it("makes WR and RB players eligible for Flex, after their own position", () => {
-    expect(derivePlayerEligiblePositions(PLAYERS["3"], FLEX_POSITIONS)).toEqual(["WR", "WRRB_FLEX"]);
-    expect(derivePlayerEligiblePositions(PLAYERS["2"], FLEX_POSITIONS)).toEqual(["RB", "WRRB_FLEX"]);
-  });
-
-  it("does not make a TE eligible for Flex", () => {
-    expect(derivePlayerEligiblePositions(PLAYERS["4"], FLEX_POSITIONS)).toEqual(["TE"]);
-  });
-
-  it("places the player in Sleeper's flex starter slot into the Flex column", () => {
-    const roster: SleeperRoster = {
-      roster_id: 1, owner_id: "u1",
-      starters: ["1", "2", "3", "5"], players: ["1", "2", "3", "5"], taxi: null, reserve: null,
-    };
-    const grid = buildDepthChart(roster, PLAYERS, FLEX_POSITIONS, { rosterPositions: FLEX_ROSTER_POSITIONS });
-    const starting = grid.sections.find((s) => s.label === "Starting")!;
-    expect(starting.rows).toHaveLength(1);
-    expect(starting.rows[0][FLEX_POSITIONS.indexOf("WR")]?.id).toBe("3");
-    expect(starting.rows[0][FLEX_POSITIONS.indexOf("WRRB_FLEX")]?.id).toBe("5");
-  });
-
-  it("never defaults a bench WR into Flex", () => {
-    const roster: SleeperRoster = {
-      roster_id: 1, owner_id: "u1",
-      starters: ["1"], players: ["1", "5"], taxi: null, reserve: null,
-    };
-    const grid = buildDepthChart(roster, PLAYERS, FLEX_POSITIONS, { rosterPositions: FLEX_ROSTER_POSITIONS });
-    const bench = grid.sections.find((s) => s.label === "Bench")!;
-    expect(bench.rows[0][FLEX_POSITIONS.indexOf("WR")]?.id).toBe("5");
-    expect(bench.rows[0][FLEX_POSITIONS.indexOf("WRRB_FLEX")]).toBeNull();
-  });
-
-  it("allows Flex as a placement only in the Starting section", () => {
-    expect(canPlace(["WR", "WRRB_FLEX"], "Starting", "WRRB_FLEX")).toBe(true);
-    expect(canPlace(["WR", "WRRB_FLEX"], "Bench", "WRRB_FLEX")).toBe(false);
-    expect(canPlace(["WR", "WRRB_FLEX"], "Bench", "WR")).toBe(true);
-    expect(canPlace(["TE"], "Starting", "WRRB_FLEX")).toBe(false);
-  });
-
-  it("ignores a saved Flex correction for a bench player", () => {
-    const roster: SleeperRoster = {
-      roster_id: 1, owner_id: "u1",
-      starters: ["1"], players: ["1", "5"], taxi: null, reserve: null,
-    };
-    const grid = buildDepthChart(roster, PLAYERS, FLEX_POSITIONS, {
-      rosterPositions: FLEX_ROSTER_POSITIONS,
-      plan: { ...EMPTY_PLAN, positions: { "5": "WRRB_FLEX" } },
-    });
-    const bench = grid.sections.find((s) => s.label === "Bench")!;
-    expect(bench.rows[0][FLEX_POSITIONS.indexOf("WR")]?.id).toBe("5");
-  });
-});
-
 // ── buildDepthChart with a plan ────────────────────────────────────────────
 
 describe("buildDepthChart with a plan", () => {
@@ -413,13 +350,6 @@ describe("buildDepthChart with a plan", () => {
     const grid = buildDepthChart(roster, PLAYERS, POSITIONS, { showEmpty: ["IR"] });
     const ir = section(grid, "IR")!;
     expect(ir.rows).toEqual([POSITIONS.map(() => null)]);
-  });
-
-  it("gives every cell its full eligibility, including Flex, regardless of section", () => {
-    const flexPositions = [...POSITIONS, "WRRB_FLEX"];
-    const grid = buildDepthChart(roster, PLAYERS, flexPositions);
-    const benchWr = section(grid, "Bench")!.rows[0][flexPositions.indexOf("WR")];
-    expect(benchWr?.eligiblePositions).toEqual(["WR", "WRRB_FLEX"]);
   });
 });
 

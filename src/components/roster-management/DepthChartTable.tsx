@@ -13,7 +13,6 @@ import {
 } from "@dnd-kit/core";
 import {
   buildDepthChart,
-  columnLabel,
   countActiveByPosition,
   playerDisplayName,
   type DepthChartCell,
@@ -291,8 +290,8 @@ export default function DepthChartTable({
     // Sections the league has slots for stay on screen as drop targets even
     // when empty.
     const showEmpty = (Object.keys(slotTotals) as PlanSection[]).filter((s) => slotTotals[s] > 0);
-    return buildDepthChart(roster, players, positions, { rosterPositions, plan, picks, showEmpty });
-  }, [roster, players, positions, rosterPositions, slotTotals, plan, picks]);
+    return buildDepthChart(roster, players, positions, { plan, picks, showEmpty });
+  }, [roster, players, positions, slotTotals, plan, picks]);
   const activeCounts = useMemo(() => countActiveByPosition(grid), [grid]);
   const sectionCounts = useMemo(() => computeRosterCounts(grid, slotTotals), [grid, slotTotals]);
   const targetTotal = useMemo(
@@ -373,7 +372,7 @@ export default function DepthChartTable({
                       key={pos}
                       className="border-b border-l border-gray-200 bg-green-700 px-4 py-2.5 text-center font-bold text-white dark:border-pitch-700"
                     >
-                      {columnLabel(pos)}: {activeCounts[pos]}
+                      {pos}: {activeCounts[pos]}
                     </th>
                   ))}
                 </tr>
@@ -406,7 +405,7 @@ export default function DepthChartTable({
                           inputMode="numeric"
                           value={targets[pos] ?? ""}
                           onChange={(e) => updateTarget(pos, e.target.value)}
-                          aria-label={`${columnLabel(pos)} target`}
+                          aria-label={`${pos} target`}
                           placeholder="–"
                           // Fills the cell so the status color is the box; the
                           // spinner arrows are hidden so the number centers.
