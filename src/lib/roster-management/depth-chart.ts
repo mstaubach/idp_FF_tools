@@ -1,8 +1,10 @@
+import { pickLabel, type DraftPick } from "./picks";
+import type { PlanSection, RosterPlan } from "./plan";
 import type { SleeperPlayer, SleeperRoster } from "./types";
 
 // Entries in roster_positions that represent slot types, not player positions.
 const SLOT_ONLY = new Set([
-  "BN", "FLEX", "IDP_FLEX", "REC_FLEX", "SUPER_FLEX", "DEF", "TAXI", "IR",
+  "BN", "FLEX", "IDP_FLEX", "REC_FLEX", "SUPER_FLEX", "WRRB_FLEX", "DEF", "TAXI", "IR",
 ]);
 
 // Sleeper sometimes stores granular positions (DE, DT, CB, S, OLB, MLB).
@@ -65,8 +67,11 @@ export function deriveBenchIds(roster: SleeperRoster): string[] {
   );
 }
 
+// A cell holds a rostered player or a draft pick planned as a future rookie.
+// `id` is the player ID or the pick ID accordingly.
 export type DepthChartCell = {
-  playerId: string;
+  kind: "player" | "pick";
+  id: string;
   displayName: string;
   eligiblePositions: string[];
 };
@@ -81,98 +86,149 @@ export type DepthChartGrid = {
   sections: DepthChartSection[];
 };
 
-function buildDisplayNames(
-  playerIds: string[],
-  players: Record<string, SleeperPlayer>,
-): Map<string, string> {
-  const result = new Map<string, string>();
-  for (const id of playerIds) {
-    const p = players[id];
-    if (!p?.last_name) continue;
-    result.set(id, p.first_name ? `${p.first_name} ${p.last_name}` : p.last_name);
-  }
-  return result;
+export function playerDisplayName(player: SleeperPlayer | undefined): string {
+  if (!player?.last_name) return "";
+  return player.first_name ? `${player.first_name} ${player.last_name}` : player.last_name;
+}
+
+const NON_STARTER_SLOTS = new Set(["BN", "TAXI", "IR"]);
+
+// The starting lineup's slot types, in the order Sleeper fills roster.starters.
+export function starterSlotTypes(rosterPositions: string[]): string[] {
+  return rosterPositions.filter((p) => !NON_STARTER_SLOTS.has(p));
 }
 
 function buildSection(
-  label: DepthChartSection["label"],
+  label: PlanSection,
   playerIds: string[],
   positions: string[],
   players: Record<string, SleeperPlayer>,
-  displayNames: Map<string, string>,
-  overrides: Record<string, string>,
+  planPositions: Record<string, string>,
+  placedPicks: Array<{ pick: DraftPick; position: string }>,
+  showEmpty: boolean,
 ): DepthChartSection | null {
-  // Discard empty Sleeper sentinel ("0") and unknown player IDs.
-  const valid = playerIds.filter((id) => id !== "0" && players[id]);
-  if (valid.length === 0) return null;
-
-  const byPosition = new Map<string, string[]>();
-  for (const id of valid) {
+  const byPosition = new Map<string, DepthChartCell[]>();
+  for (const id of playerIds) {
     const player = players[id];
     const eligiblePositions = derivePlayerEligiblePositions(player, positions);
     if (eligiblePositions.length === 0) continue;
 
     const defaultPos = normalizePosition(player.position ?? null);
-    const overridePos = overrides[id];
+    const planPos = planPositions[id];
     const assignedPos =
-      overridePos && eligiblePositions.includes(overridePos)
-        ? overridePos
+      planPos && eligiblePositions.includes(planPos)
+        ? planPos
         : defaultPos && eligiblePositions.includes(defaultPos)
           ? defaultPos
           : eligiblePositions[0];
 
     const group = byPosition.get(assignedPos) ?? [];
-    group.push(id);
+    group.push({
+      kind: "player",
+      id,
+      displayName: playerDisplayName(player),
+      eligiblePositions,
+    });
     byPosition.set(assignedPos, group);
+  }
+
+  // Picks go after the column's players: they're future additions.
+  for (const { pick, position } of placedPicks) {
+    const group = byPosition.get(position) ?? [];
+    group.push({ kind: "pick", id: pick.id, displayName: pickLabel(pick), eligiblePositions: positions });
+    byPosition.set(position, group);
   }
 
   const maxRows = Math.max(
     0,
     ...positions.map((p) => byPosition.get(p)?.length ?? 0),
   );
-  if (maxRows === 0) return null;
+  // An empty row keeps the section on screen as a drop target.
+  if (maxRows === 0 && !showEmpty) return null;
 
-  const rows: (DepthChartCell | null)[][] = Array.from({ length: maxRows }, (_, r) =>
-    positions.map((pos) => {
-      const id = byPosition.get(pos)?.[r];
-      if (id === undefined) return null;
-      return {
-        playerId: id,
-        displayName: displayNames.get(id) ?? "",
-        eligiblePositions: derivePlayerEligiblePositions(players[id], positions),
-      };
-    }),
+  const rows: (DepthChartCell | null)[][] = Array.from({ length: Math.max(maxRows, 1) }, (_, r) =>
+    positions.map((pos) => byPosition.get(pos)?.[r] ?? null),
   );
 
   return { label, rows };
 }
 
+// Local stand-in for plan.ts's EMPTY_PLAN: plan.ts imports this module, so
+// only types flow the other way.
+const NO_PLAN: RosterPlan = { positions: {}, sections: {}, cut: [], picks: {} };
+
+export type BuildDepthChartOptions = {
+  plan?: RosterPlan;
+  picks?: DraftPick[]; // picks the roster owns; placed ones join the grid
+  showEmpty?: PlanSection[]; // sections to render even with no players
+};
+
 export function buildDepthChart(
   roster: SleeperRoster,
   players: Record<string, SleeperPlayer>,
   positions: string[],
-  overrides: Record<string, string> = {},
+  { plan = NO_PLAN, picks = [], showEmpty = [] }: BuildDepthChartOptions = {},
 ): DepthChartGrid {
-  const bench = deriveBenchIds(roster);
+  const cut = new Set(plan.cut);
 
-  // Build the full-name lookup once across every section's players.
-  // Deduplicate because roster.players already includes taxi/reserve members.
-  const allIds = [...new Set([...roster.players, ...(roster.taxi ?? []), ...(roster.reserve ?? [])])];
-  const displayNames = buildDisplayNames(allIds, players);
+  // Sleeper's sections first, then apply the plan's moves. Iterating in
+  // section order means a player moved into a section lands after the
+  // players already there.
+  const sleeperSections: Array<[PlanSection, string[]]> = [
+    ["Starting", roster.starters],
+    ["Bench", deriveBenchIds(roster)],
+    ["Taxi", roster.taxi ?? []],
+    ["IR", roster.reserve ?? []],
+  ];
+  const idsBySection = new Map<PlanSection, string[]>(
+    sleeperSections.map(([label]) => [label, []]),
+  );
+  for (const [label, ids] of sleeperSections) {
+    for (const id of ids) {
+      // Discard empty Sleeper sentinel ("0"), unknown player IDs, and cuts.
+      if (id === "0" || !players[id] || cut.has(id)) continue;
+      idsBySection.get(plan.sections[id] ?? label)!.push(id);
+    }
+  }
+
+  // Placements for picks no longer owned, or for invalid spots, are skipped.
+  const picksBySection = new Map<PlanSection, Array<{ pick: DraftPick; position: string }>>();
+  for (const pick of picks) {
+    const placement = plan.picks[pick.id];
+    if (!placement || !positions.includes(placement.position)) continue;
+    const group = picksBySection.get(placement.section) ?? [];
+    group.push({ pick, position: placement.position });
+    picksBySection.set(placement.section, group);
+  }
 
   const sections: DepthChartSection[] = [];
-
-  const starting = buildSection("Starting", roster.starters, positions, players, displayNames, overrides);
-  if (starting) sections.push(starting);
-
-  const benchSection = buildSection("Bench", bench, positions, players, displayNames, overrides);
-  if (benchSection) sections.push(benchSection);
-
-  const taxiSection = buildSection("Taxi", roster.taxi ?? [], positions, players, displayNames, overrides);
-  if (taxiSection) sections.push(taxiSection);
-
-  const irSection = buildSection("IR", roster.reserve ?? [], positions, players, displayNames, overrides);
-  if (irSection) sections.push(irSection);
+  for (const [label] of sleeperSections) {
+    const section = buildSection(
+      label,
+      idsBySection.get(label)!,
+      positions,
+      players,
+      plan.positions,
+      picksBySection.get(label) ?? [],
+      showEmpty.includes(label),
+    );
+    if (section) sections.push(section);
+  }
 
   return { positions, sections };
+}
+
+// Players per column across the Starting and Bench sections (taxi and IR are
+// excluded). Counted from the built grid so drag-and-drop corrections apply.
+export function countActiveByPosition(grid: DepthChartGrid): Record<string, number> {
+  const counts: Record<string, number> = Object.fromEntries(grid.positions.map((p) => [p, 0]));
+  for (const section of grid.sections) {
+    if (section.label !== "Starting" && section.label !== "Bench") continue;
+    for (const row of section.rows) {
+      row.forEach((cell, ci) => {
+        if (cell) counts[grid.positions[ci]] += 1;
+      });
+    }
+  }
+  return counts;
 }
