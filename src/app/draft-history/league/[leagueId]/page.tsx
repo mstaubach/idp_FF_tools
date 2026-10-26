@@ -1,5 +1,6 @@
 import DraftBoardView from "@/components/draft-history/DraftBoardView";
 import Message from "@/components/draft-history/Message";
+import ActiveLeagueSync from "@/components/profile/ActiveLeagueSync";
 import {
   buildDraftHistory,
   buildTeamDirectory,
@@ -103,6 +104,7 @@ export default async function DraftHistoryLeaguePage({
 
   return (
     <main className="mx-auto max-w-[90rem] space-y-6 px-2">
+      <ActiveLeagueSync leagueId={leagueId} />
       <div>
         <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
           {leagueName}

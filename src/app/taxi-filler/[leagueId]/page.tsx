@@ -1,5 +1,6 @@
 import TaxiFillerTable from "@/components/taxi-filler/TaxiFillerTable";
 import { getLeague, getRosters, getPlayers } from "@/lib/taxi-filler/sleeper";
+import ActiveLeagueSync from "@/components/profile/ActiveLeagueSync";
 import {
   buildTaxiCandidates,
   deriveEligiblePositions,
@@ -44,6 +45,7 @@ export default async function TaxiFillerLeaguePage({
 
   return (
     <main className="mx-auto max-w-5xl space-y-6">
+      <ActiveLeagueSync leagueId={leagueId} />
       <div>
         <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
           {league.name}
