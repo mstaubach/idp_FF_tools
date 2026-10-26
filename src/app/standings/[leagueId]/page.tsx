@@ -1,6 +1,7 @@
 import { getLeagueName, loadLeagueHistory } from "@/lib/standings/sleeper";
 import ChampionsStrip from "@/components/standings/ChampionsStrip";
 import StandingsView from "@/components/standings/StandingsView";
+import ActiveLeagueSync from "@/components/profile/ActiveLeagueSync";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function LeagueStandingsPage({
 
   return (
     <main className="mx-auto max-w-6xl space-y-6">
+      <ActiveLeagueSync leagueId={leagueId} />
       <div>
         <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
           {leagueName ?? "League Standings"}

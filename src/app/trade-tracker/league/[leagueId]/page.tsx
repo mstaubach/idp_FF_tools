@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Message from "@/components/trade-tracker/Message";
 import { listLeagueTeams } from "@/lib/trade-tracker/team-view";
+import ActiveLeagueSync from "@/components/profile/ActiveLeagueSync";
 
 export const revalidate = 300;
 
@@ -37,6 +38,7 @@ export default async function LeaguePage({
 
   return (
     <main className="mx-auto max-w-6xl space-y-6">
+      <ActiveLeagueSync leagueId={leagueId} />
       <div>
         <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">{data.leagueName}</h1>
         <p className="text-sm text-gray-500 dark:text-slate-400">Pick a team to see its trade history</p>

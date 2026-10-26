@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getLeague, getRosters, getUsers } from "@/lib/roster-management/sleeper";
+import ActiveLeagueSync from "@/components/profile/ActiveLeagueSync";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function RosterManagementLeaguePage({
 
   return (
     <main className="mx-auto max-w-5xl space-y-6">
+      <ActiveLeagueSync leagueId={leagueId} />
       <div>
         <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-slate-100">
           {league.name}
