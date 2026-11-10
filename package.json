@@ -47,6 +47,9 @@
     "lightningcss-linux-x64-gnu": "1.33.0"
   },
   "overrides": {
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.5"
+    }
   }
 }
